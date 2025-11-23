@@ -493,10 +493,12 @@ function updateHand(animationType = null) {
         controlsDiv.appendChild(statusDiv);
         
         handDiv.appendChild(controlsDiv);
-    } else if (gameState.phase === 'selecting' && !hasSelected) {
-        // Show hint for normal mode (only if no card selected yet)
+    }
+    
+    // Show hint for normal mode OUTSIDE the animated container
+    if (gameState.phase === 'selecting' && !hasSelected && !canUseChopsticks) {
         const hintDiv = document.createElement('div');
-        hintDiv.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; text-align: center; position: relative; z-index: 1;';
+        hintDiv.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; text-align: center; position: relative; z-index: 2;';
         
         // Check if any card is selected (for non-chopsticks mode)
         if (selectedCardIndex !== null && !chopsticksMode) {
@@ -509,6 +511,10 @@ function updateHand(animationType = null) {
         
         handDiv.appendChild(hintDiv);
     }
+    
+    // Create a wrapper for the animated cards container
+    const cardsWrapper = document.createElement('div');
+    cardsWrapper.style.cssText = 'position: relative; overflow: hidden;';
     
     // Create a container for cards
     const cardsContainer = document.createElement('div');
@@ -586,7 +592,8 @@ function updateHand(animationType = null) {
         cardsContainer.appendChild(cardEl);
     });
     
-    handDiv.appendChild(cardsContainer);
+    cardsWrapper.appendChild(cardsContainer);
+    handDiv.appendChild(cardsWrapper);
     
     // Remove animation class after animation completes to allow re-triggering
     if (animationType) {
@@ -660,8 +667,8 @@ function updateCollection() {
         }
     });
     
-    // Track wasabi usage
-    let unusedWasabiCount = cardCounts['wasabi'] || 0;
+    // Track wasabi usage - count wasabi that haven't been paired with nigiri yet
+    let availableWasabiCount = 0;
     
     // Track set completion indices
     let tempuraCount = 0;
@@ -698,11 +705,12 @@ function updateCollection() {
             cardText += ` [${card.value || 0}]`;
         }
         
-        // Check if this is a wasabi that's been used
+        // Track wasabi cards
         if (card.type === 'wasabi') {
-            // Count nigiri cards that come after this wasabi
-            let hasNigiriAfter = false;
+            availableWasabiCount++;
             
+            // Check if this wasabi will be used by a nigiri that comes after it
+            let hasNigiriAfter = false;
             for (let i = index + 1; i < myPlayer.collection.length; i++) {
                 if (myPlayer.collection[i].type === 'nigiri') {
                     hasNigiriAfter = true;
@@ -718,9 +726,9 @@ function updateCollection() {
         }
         
         // Check if this is a nigiri that can use wasabi
-        if (card.type === 'nigiri' && unusedWasabiCount > 0) {
+        if (card.type === 'nigiri' && availableWasabiCount > 0) {
             cardText += ' 3x';
-            unusedWasabiCount--; // Mark this wasabi as used
+            availableWasabiCount--; // Mark this wasabi as used
         }
         
         // Highlight completed sets
