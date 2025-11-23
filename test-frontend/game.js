@@ -439,49 +439,25 @@ function updateHand(animationType = null) {
     const hasChopsticks = myPlayer?.collection?.some(card => card.type === 'chopsticks');
     const hasSelected = myPlayer?.hasSelected;
     
-    // If player has already selected, show waiting state
+    // If player has already selected, show waiting indicator separately
     if (hasSelected && gameState.phase === 'selecting') {
         const waitingDiv = document.createElement('div');
-        waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;';
+        waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; cursor: pointer; transition: background 0.2s;';
+        waitingDiv.onmouseover = () => {
+            waitingDiv.style.background = '#ffe69c';
+        };
+        waitingDiv.onmouseout = () => {
+            waitingDiv.style.background = '#fff3cd';
+        };
+        waitingDiv.onclick = () => {
+            withdrawCard();
+        };
         waitingDiv.innerHTML = `
-            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">⏳ Waiting for other players...</div>
-            <div style="font-size: 14px; margin-bottom: 10px;">You have played your card(s) for this turn</div>
+            <div style="font-size: 16px; font-weight: bold;">⏳ Waiting for other players...</div>
+            <div style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Click here to withdraw your selection</div>
         `;
-        
-        const withdrawBtn = document.createElement('button');
-        withdrawBtn.textContent = '↩️ Withdraw Selection';
-        withdrawBtn.onclick = withdrawCard;
-        withdrawBtn.style.cssText = `
-            padding: 8px 16px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-        `;
-        waitingDiv.appendChild(withdrawBtn);
         
         handDiv.appendChild(waitingDiv);
-        
-        // Show remaining cards greyed out
-        const greyedHandDiv = document.createElement('div');
-        greyedHandDiv.style.cssText = 'opacity: 0.4; pointer-events: none;';
-        myHand.forEach((card, index) => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'card';
-            cardEl.style.cssText = 'display: inline-block; margin: 5px;';
-            
-            cardEl.innerHTML = `
-                <div class="card-type">${formatCardType(card.type)}</div>
-                ${card.variant ? `<div class="card-variant">${card.variant}</div>` : ''}
-                ${card.value ? `<div class="card-variant">Value: ${card.value}</div>` : ''}
-            `;
-            
-            greyedHandDiv.appendChild(cardEl);
-        });
-        handDiv.appendChild(greyedHandDiv);
-        return;
     }
     
     // Show chopsticks toggle and controls
@@ -542,16 +518,62 @@ function updateHand(animationType = null) {
             cardEl.classList.add('turn-animation');
         }
         
+        // Grey out non-selected cards if player has already selected
+        if (hasSelected) {
+            cardEl.style.opacity = '0.3';
+            cardEl.style.pointerEvents = 'none';
+        }
+        
+        // Highlight selected cards
         if (selectedCardIndex === index || secondCardIndex === index) {
             cardEl.className += ' selected';
+            if (hasSelected) {
+                cardEl.style.opacity = '1';
+                cardEl.style.pointerEvents = 'auto';
+                cardEl.style.cursor = 'pointer';
+                
+                // Add withdraw tooltip on hover
+                const withdrawTooltip = document.createElement('div');
+                withdrawTooltip.style.cssText = `
+                    position: absolute;
+                    top: -30px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #dc3545;
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                    pointer-events: none;
+                `;
+                withdrawTooltip.textContent = 'Withdraw?';
+                cardEl.style.position = 'relative';
+                cardEl.appendChild(withdrawTooltip);
+                
+                cardEl.onmouseover = () => {
+                    withdrawTooltip.style.opacity = '1';
+                };
+                cardEl.onmouseout = () => {
+                    withdrawTooltip.style.opacity = '0';
+                };
+                
+                cardEl.onclick = () => {
+                    withdrawCard();
+                };
+            }
+        } else {
+            cardEl.onclick = () => selectCard(index);
         }
-        cardEl.onclick = () => selectCard(index);
         
         cardEl.innerHTML = `
             <div class="card-type">${formatCardType(card.type)}</div>
             ${card.variant ? `<div class="card-variant">${card.variant}</div>` : ''}
             ${card.value ? `<div class="card-variant">Value: ${card.value}</div>` : ''}
-        `;
+        ` + (cardEl.innerHTML || '');
         
         handDiv.appendChild(cardEl);
         
