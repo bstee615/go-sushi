@@ -12,14 +12,14 @@ let isAnimating = false;
 
 // UI Elements
 const connectionStatus = document.getElementById('connectionStatus');
-const connectBtn = document.getElementById('connectBtn');
 const createBtn = document.getElementById('createBtn');
 const joinBtn = document.getElementById('joinBtn');
 const startBtn = document.getElementById('startBtn');
 const handDiv = document.getElementById('hand');
 const playersListDiv = document.getElementById('playersList');
 const collectionDiv = document.getElementById('collection');
-const logDiv = document.getElementById('log');
+// Log div removed from UI but keeping function for debugging
+const logDiv = { appendChild: () => {}, scrollTop: 0, scrollHeight: 0 };
 const phaseIndicator = document.getElementById('phaseIndicator');
 const currentGameIdDiv = document.getElementById('currentGameId');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
@@ -40,26 +40,37 @@ function log(message, type = 'info') {
 function connect() {
     const serverUrl = document.getElementById('serverUrl').value;
     
+    // Show connecting spinner
+    connectionStatus.innerHTML = '<span class="spinner"></span> Connecting...';
+    connectionStatus.className = 'connection-status status-connecting';
+    
     try {
         ws = new WebSocket(serverUrl);
         
         ws.onopen = () => {
             log('Connected to server', 'sent');
-            connectionStatus.textContent = 'Connected';
-            connectionStatus.className = 'connection-status status-connected';
-            connectBtn.disabled = true;
+            // Hide connection status once connected
+            connectionStatus.style.display = 'none';
             createBtn.disabled = false;
             joinBtn.disabled = false;
         };
         
         ws.onclose = () => {
             log('Disconnected from server', 'error');
-            connectionStatus.textContent = 'Disconnected';
-            connectionStatus.className = 'connection-status status-disconnected';
-            connectBtn.disabled = false;
+            // Show connecting spinner again
+            connectionStatus.style.display = 'inline-block';
+            connectionStatus.innerHTML = '<span class="spinner"></span> Connecting...';
+            connectionStatus.className = 'connection-status status-connecting';
             createBtn.disabled = true;
             joinBtn.disabled = true;
             startBtn.disabled = true;
+            
+            // Try to reconnect after 2 seconds
+            setTimeout(() => {
+                if (!ws || ws.readyState === WebSocket.CLOSED) {
+                    connect();
+                }
+            }, 2000);
         };
         
         ws.onerror = (error) => {
@@ -76,10 +87,7 @@ function connect() {
 }
 
 function logout() {
-    if (ws) {
-        ws.close();
-        ws = null;
-    }
+    // Don't close WebSocket connection - keep it alive
     
     // Reset game state
     gameState = null;
@@ -97,8 +105,10 @@ function logout() {
     setTimeout(() => {
         // Switch to login screen
         playingScreen.style.display = 'none';
-        playingScreen.classList.remove('fade-out');
+        playingScreen.classList.remove('fade-out', 'screen');
         loginScreen.style.display = 'block';
+        // Trigger fade-in animation for login screen
+        loginScreen.classList.add('screen');
         
         // Clear UI
         handDiv.innerHTML = '';
@@ -117,6 +127,8 @@ function switchToPlayingScreen() {
         loginScreen.style.display = 'none';
         loginScreen.classList.remove('fade-out');
         playingScreen.style.display = 'block';
+        // Trigger fade-in animation for playing screen
+        playingScreen.classList.add('screen');
     }, 300);
 }
 
