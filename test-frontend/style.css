@@ -509,3 +509,20 @@ button:disabled {
 #gamesList::-webkit-scrollbar-thumb:hover {
     background: #5568d3;
 }
+
+/* Instructions button */
+.instructions-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.instructions-btn:hover {
+    background: #45a049;
+}
