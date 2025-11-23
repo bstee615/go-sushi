@@ -526,3 +526,10 @@ button:disabled {
 .instructions-btn:hover {
     background: #45a049;
 }
+
+/* Header actions container */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
