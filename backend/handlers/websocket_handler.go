@@ -298,7 +298,7 @@ func (h *WSHandler) handleSelectCard(client *Client, payload json.RawMessage) {
 	log.Printf("handleSelectCard: Player %s selecting card index %d", client.playerID, data.CardIndex)
 
 	// Play the card
-	if err := h.engine.PlayCard(client.gameID, client.playerID, data.CardIndex, data.UseChopsticks); err != nil {
+	if err := h.engine.PlayCard(client.gameID, client.playerID, data.CardIndex, data.UseChopsticks, data.SecondCardIndex); err != nil {
 		log.Printf("handleSelectCard: PlayCard failed: %v", err)
 		h.sendError(client, "Failed to select card: "+err.Error())
 		return
@@ -648,15 +648,15 @@ func (h *WSHandler) buildGameState(game *models.Game, playerID string) map[strin
 		hasSelected := player.SelectedCard != nil
 
 		players[i] = map[string]interface{}{
-			"id":            player.ID,
-			"name":          player.Name,
-			"handSize":      len(player.Hand),
-			"collection":    player.Collection,
-			"puddingCards":  player.PuddingCards,
-			"score":         player.Score,
-			"hasSelected":   hasSelected,
-			"roundScores":   player.RoundScores,
-			"hasChopsticks": player.HasChopsticks,
+			"id":              player.ID,
+			"name":            player.Name,
+			"handSize":        len(player.Hand),
+			"collection":      player.Collection,
+			"puddingCards":    player.PuddingCards,
+			"score":           player.Score,
+			"hasSelected":     hasSelected,
+			"roundScores":     player.RoundScores,
+			"chopsticksCount": player.ChopsticksCount,
 		}
 
 		// Include hand only for the requesting player

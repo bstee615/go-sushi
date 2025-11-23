@@ -39,15 +39,16 @@ type Card struct {
 
 // Player represents a player in the game
 type Player struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	Hand          []Card `json:"hand"`
-	Collection    []Card `json:"collection"`
-	PuddingCards  []Card `json:"pudding_cards"`
-	Score         int    `json:"score"`
-	RoundScores   []int  `json:"round_scores"`
-	HasChopsticks bool   `json:"has_chopsticks"`
-	SelectedCard  *int   `json:"selected_card,omitempty"`
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Hand            []Card `json:"hand"`
+	Collection      []Card `json:"collection"`
+	PuddingCards    []Card `json:"pudding_cards"`
+	Score           int    `json:"score"`
+	RoundScores     []int  `json:"round_scores"`
+	ChopsticksCount int    `json:"chopsticks_count"`
+	SelectedCard    *int   `json:"selected_card,omitempty"`
+	SecondCard      *int   `json:"second_card,omitempty"` // For chopsticks usage
 }
 
 // Game represents a complete game session

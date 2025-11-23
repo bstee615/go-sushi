@@ -6,7 +6,7 @@ import "github.com/sushi-go-game/backend/models"
 type GameEngine interface {
 	CreateGame(playerIDs []string) (*models.Game, error)
 	StartRound(gameID string) error
-	PlayCard(gameID, playerID string, cardIndex int, useChopsticks bool) error
+	PlayCard(gameID, playerID string, cardIndex int, useChopsticks bool, secondCardIndex *int) error
 	WithdrawCard(gameID, playerID string) error
 	RevealCards(gameID string) error
 	PassHands(gameID string) error

@@ -330,30 +330,43 @@ function handleRoundEnd(payload) {
     // payload.round is the round that just completed
     const round = payload.round || 0;
     
-    // Create round end overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'round-end-overlay';
-    overlay.innerHTML = `
-        <div class="round-end-content">
-            <div class="round-end-title">🍣 Round ${round} Completed! 🍣</div>
-            <div class="round-end-subtitle">Cooking up the next round...</div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    // Fade in
+    // Wait a bit for game state to update, then show the overlay
     setTimeout(() => {
-        overlay.classList.add('visible');
-    }, 10);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        overlay.classList.remove('visible');
+        // Get my player's round score from updated game state
+        const myPlayer = gameState?.players?.find(p => p.id === myPlayerId);
+        const roundScore = myPlayer?.roundScores?.[round - 1] || 0;
+        const totalScore = myPlayer?.score || 0;
+        const puddingCount = myPlayer?.puddingCards?.length || 0;
+        
+        // Create round end overlay with score details
+        const overlay = document.createElement('div');
+        overlay.className = 'round-end-overlay';
+        overlay.innerHTML = `
+            <div class="round-end-content">
+                <div class="round-end-title">🍣 Round ${round-1} Completed! 🍣</div>
+                <div style="margin: 20px 0; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px;">
+                    <div style="font-size: 16px; opacity: 0.9;">Total Score: ${totalScore} pts</div>
+                    <div style="font-size: 14px; opacity: 0.8; margin-top: 10px;">🍮 Pudding: ${puddingCount}</div>
+                </div>
+                <div class="round-end-subtitle">Cooking up the next round...</div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Fade in
         setTimeout(() => {
-            overlay.remove();
-        }, 500);
-    }, 3000);
+            overlay.classList.add('visible');
+        }, 10);
+        
+        // Remove after 4 seconds (longer to read the scores)
+        setTimeout(() => {
+            overlay.classList.remove('visible');
+            setTimeout(() => {
+                overlay.remove();
+            }, 500);
+        }, 4000);
+    }, 100); // Small delay to let game state update
 }
 
 // Handle game end message
@@ -371,16 +384,31 @@ function handleGameEnd(payload) {
     // Sort players by score (descending)
     const sortedPlayers = [...(gameState?.players || [])].sort((a, b) => b.score - a.score);
     
+    // Determine winners (handle ties)
+    const topScore = sortedPlayers[0]?.score || 0;
+    const winners = sortedPlayers.filter(p => p.score === topScore);
+    const isTie = winners.length > 1;
+    
     const finalScoresHTML = `
         <div style="text-align: center; padding: 20px;">
             <div style="font-size: 48px; margin-bottom: 20px;">🎉</div>
             <div style="font-size: 32px; font-weight: bold; color: #333; margin-bottom: 30px;">Game Over!</div>
+            ${isTie ? `<div style="font-size: 18px; color: #667eea; margin-bottom: 20px; font-weight: bold;">🤝 ${winners.length}-Way Tie!</div>` : ''}
             
             <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
                 <h3 style="color: #333; margin-bottom: 20px;">Final Scores</h3>
                 ${sortedPlayers.map((player, index) => {
-                    const isWinner = index === 0;
+                    const isWinner = player.score === topScore;
                     const isMe = player.id === myPlayerId;
+                    
+                    // Calculate actual rank (handle ties)
+                    let rank = 1;
+                    for (let i = 0; i < index; i++) {
+                        if (sortedPlayers[i].score > player.score) {
+                            rank++;
+                        }
+                    }
+                    
                     return `
                         <div style="
                             background: ${isWinner ? 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)' : '#f8f9fa'};
@@ -393,7 +421,7 @@ function handleGameEnd(payload) {
                             ${isWinner ? 'border: 3px solid #ffa500;' : ''}
                         ">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 24px; font-weight: bold; color: #666;">#${index + 1}</span>
+                                <span style="font-size: 24px; font-weight: bold; color: #666;">#${rank}</span>
                                 <span style="font-size: 18px; font-weight: ${isWinner ? 'bold' : '600'}; color: #333;">
                                     ${player.name}${isMe ? ' (You)' : ''}
                                     ${isWinner ? ' 👑' : ''}
@@ -916,8 +944,8 @@ function updateHand(animationType = null) {
     
     // Check if player has chopsticks and if they've already selected
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
-    // NOTE: Backend sends hasChopsticks (camelCase) which indicates if chopsticks are available to use (not just in collection)
-    const canUseChopsticks = !!(myPlayer?.hasChopsticks);
+    // NOTE: Backend sends chopsticksCount which indicates how many chopsticks are available to use
+    const canUseChopsticks = (myPlayer?.chopsticksCount || 0) > 0;
     const hasSelected = myPlayer?.hasSelected;
     
     // Update status message based on game state
@@ -1101,8 +1129,9 @@ function updateHand(animationType = null) {
         const hasActiveWasabi = wasabiCount > nigiriCount;
         const wasabiStatus = hasActiveWasabi ? 'ACTIVE' : (wasabiCount > 0 ? 'USED' : 'NONE');
         
-        // Check chopsticks status
-        const chopsticksStatus = canUseChopsticks ? (chopsticksMode ? 'ACTIVE' : 'READY') : 'NONE';
+        // Check chopsticks status and count
+        const chopsticksCount = myPlayer?.chopsticksCount || 0;
+        const chopsticksStatus = canUseChopsticks ? (chopsticksMode ? 'ACTIVE' : chopsticksCount) : 0;
         const hasChopsticksAvailable = canUseChopsticks && gameState.phase === 'selecting' && !hasSelected;
         
         // Create stat items - 3 per row for consistent layout
@@ -1261,6 +1290,23 @@ function updateCollection() {
     if (puddingCountEl) {
         const puddingCards = myPlayer?.puddingCards || [];
         puddingCountEl.textContent = puddingCards.length;
+    }
+    
+    // Update score display
+    const totalScoreEl = document.getElementById('totalScore');
+    const roundScoresEl = document.getElementById('roundScores');
+    if (totalScoreEl && myPlayer) {
+        totalScoreEl.textContent = myPlayer.score || 0;
+        
+        // Show round-by-round scores
+        if (roundScoresEl && myPlayer.roundScores && myPlayer.roundScores.length > 0) {
+            const roundScoresText = myPlayer.roundScores.map((score, index) => 
+                `R${index + 1}: ${score}pts`
+            ).join(' | ');
+            roundScoresEl.textContent = roundScoresText;
+        } else if (roundScoresEl) {
+            roundScoresEl.textContent = '';
+        }
     }
     
     if (!myPlayer || !myPlayer.collection || myPlayer.collection.length === 0) {

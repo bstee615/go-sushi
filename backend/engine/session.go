@@ -87,15 +87,15 @@ func (e *Engine) CreateGame(playerIDs []string) (*models.Game, error) {
 	players := make([]*models.Player, 0, len(playerIDs))
 	for _, playerID := range playerIDs {
 		player := &models.Player{
-			ID:            playerID,
-			Name:          fmt.Sprintf("Player %s", playerID),
-			Hand:          []models.Card{},
-			Collection:    []models.Card{},
-			PuddingCards:  []models.Card{},
-			Score:         0,
-			RoundScores:   []int{},
-			HasChopsticks: false,
-			SelectedCard:  nil,
+			ID:              playerID,
+			Name:            fmt.Sprintf("Player %s", playerID),
+			Hand:            []models.Card{},
+			Collection:      []models.Card{},
+			PuddingCards:    []models.Card{},
+			Score:           0,
+			RoundScores:     []int{},
+			ChopsticksCount: 0,
+			SelectedCard:    nil,
 		}
 		players = append(players, player)
 	}
@@ -140,15 +140,15 @@ func (e *Engine) JoinGame(gameID, playerID string) error {
 
 	// Add player to game
 	player := &models.Player{
-		ID:            playerID,
-		Name:          fmt.Sprintf("Player %s", playerID),
-		Hand:          []models.Card{},
-		Collection:    []models.Card{},
-		PuddingCards:  []models.Card{},
-		Score:         0,
-		RoundScores:   []int{},
-		HasChopsticks: false,
-		SelectedCard:  nil,
+		ID:              playerID,
+		Name:            fmt.Sprintf("Player %s", playerID),
+		Hand:            []models.Card{},
+		Collection:      []models.Card{},
+		PuddingCards:    []models.Card{},
+		Score:           0,
+		RoundScores:     []int{},
+		ChopsticksCount: 0,
+		SelectedCard:    nil,
 	}
 
 	game.Players = append(game.Players, player)
@@ -299,7 +299,7 @@ func (e *Engine) StartRound(gameID string) error {
 }
 
 // PlayCard allows a player to select a card from their hand
-func (e *Engine) PlayCard(gameID, playerID string, cardIndex int, useChopsticks bool) error {
+func (e *Engine) PlayCard(gameID, playerID string, cardIndex int, useChopsticks bool, secondCardIndex *int) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -330,14 +330,23 @@ func (e *Engine) PlayCard(gameID, playerID string, cardIndex int, useChopsticks 
 		return errors.New("player has already selected a card")
 	}
 
-	// If using chopsticks, validate and mark for special handling
+	// If using chopsticks, validate and decrement count
 	if useChopsticks {
-		if !player.HasChopsticks {
-			return errors.New("player does not have chopsticks")
+		if player.ChopsticksCount <= 0 {
+			return errors.New("player does not have chopsticks available")
 		}
-		// Chopsticks usage will be handled in RevealCards
-		// For now, just mark that chopsticks were used
-		player.HasChopsticks = false
+		if secondCardIndex == nil {
+			return errors.New("second card index required when using chopsticks")
+		}
+		if *secondCardIndex < 0 || *secondCardIndex >= len(player.Hand) {
+			return errors.New("invalid second card index")
+		}
+		if cardIndex == *secondCardIndex {
+			return errors.New("cannot select the same card twice")
+		}
+		// Decrement chopsticks count (will be restored when chopsticks go back to hand)
+		player.ChopsticksCount--
+		player.SecondCard = secondCardIndex
 	}
 
 	// Store the selected card index
@@ -398,6 +407,7 @@ func (e *Engine) RevealCards(gameID string) error {
 
 	// Reveal and add cards to collections
 	for _, player := range game.Players {
+		// Process first card
 		if player.SelectedCard != nil {
 			cardIndex := *player.SelectedCard
 			if cardIndex >= 0 && cardIndex < len(player.Hand) {
@@ -410,9 +420,29 @@ func (e *Engine) RevealCards(gameID string) error {
 					player.Collection = append(player.Collection, selectedCard)
 				}
 
-				// Update Chopsticks status
+				// Update Chopsticks count
 				if selectedCard.Type == models.CardTypeChopsticks {
-					player.HasChopsticks = true
+					player.ChopsticksCount++
+				}
+			}
+		}
+
+		// Process second card (if using chopsticks)
+		if player.SecondCard != nil {
+			cardIndex := *player.SecondCard
+			if cardIndex >= 0 && cardIndex < len(player.Hand) {
+				selectedCard := player.Hand[cardIndex]
+
+				// Add to appropriate collection
+				if selectedCard.Type == models.CardTypePudding {
+					player.PuddingCards = append(player.PuddingCards, selectedCard)
+				} else {
+					player.Collection = append(player.Collection, selectedCard)
+				}
+
+				// Update Chopsticks count
+				if selectedCard.Type == models.CardTypeChopsticks {
+					player.ChopsticksCount++
 				}
 			}
 		}
@@ -440,33 +470,46 @@ func (e *Engine) PassHands(gameID string) error {
 	// Remove selected cards from hands first
 	// Also add chopsticks back to hand if they were used
 	for _, player := range game.Players {
+		usedChopsticks := player.SecondCard != nil
+
+		// Remove cards from hand (remove higher index first to avoid index shifting issues)
+		cardsToRemove := []int{}
 		if player.SelectedCard != nil {
-			cardIndex := *player.SelectedCard
+			cardsToRemove = append(cardsToRemove, *player.SelectedCard)
+		}
+		if player.SecondCard != nil {
+			cardsToRemove = append(cardsToRemove, *player.SecondCard)
+		}
+
+		// Sort in descending order to remove from end first
+		if len(cardsToRemove) == 2 && cardsToRemove[0] < cardsToRemove[1] {
+			cardsToRemove[0], cardsToRemove[1] = cardsToRemove[1], cardsToRemove[0]
+		}
+
+		for _, cardIndex := range cardsToRemove {
 			if cardIndex >= 0 && cardIndex < len(player.Hand) {
-				// Remove the selected card from hand
 				player.Hand = append(player.Hand[:cardIndex], player.Hand[cardIndex+1:]...)
 			}
+		}
 
-			// If chopsticks were used (HasChopsticks is false and chopsticks in collection),
-			// add chopsticks card back to the hand
-			hasChopsticksInCollection := false
-			var chopsticksCard models.Card
-			for _, card := range player.Collection {
+		// If chopsticks were used, add one chopsticks card back to hand
+		if usedChopsticks {
+			// Find and remove one chopsticks from collection
+			for i, card := range player.Collection {
 				if card.Type == models.CardTypeChopsticks {
-					hasChopsticksInCollection = true
-					chopsticksCard = card
+					// Add chopsticks back to hand
+					player.Hand = append(player.Hand, card)
+
+					// Remove from collection
+					player.Collection = append(player.Collection[:i], player.Collection[i+1:]...)
 					break
 				}
 			}
-
-			if hasChopsticksInCollection && !player.HasChopsticks {
-				// Chopsticks were just used, add them back to hand
-				player.Hand = append(player.Hand, chopsticksCard)
-			}
-
-			// Clear the selection
-			player.SelectedCard = nil
 		}
+
+		// Clear the selections
+		player.SelectedCard = nil
+		player.SecondCard = nil
 	}
 
 	// Check if round is over (all hands are empty)
@@ -536,7 +579,7 @@ func (e *Engine) ScoreRound(gameID string) error {
 	// Clear non-Pudding cards from player collections
 	for _, player := range game.Players {
 		player.Collection = []models.Card{}
-		player.HasChopsticks = false
+		player.ChopsticksCount = 0
 		player.Hand = []models.Card{}
 		player.SelectedCard = nil
 		// Note: PuddingCards are NOT cleared - they persist across rounds
