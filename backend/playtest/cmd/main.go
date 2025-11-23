@@ -27,7 +27,16 @@ func main() {
 	
 	// Start test server if requested
 	if startServer {
-		testServer, err := runner.StartTestServer()
+		// Parse the playtest file to get deals if it's a single file
+		var deals map[int]map[string][]string
+		if !isDirectory(path) {
+			playtest, err := runner.ParsePlaytest(path)
+			if err == nil && len(playtest.Deals) > 0 {
+				deals = playtest.Deals
+			}
+		}
+
+		testServer, err := runner.StartTestServer(deals)
 		if err != nil {
 			fmt.Printf("Failed to start test server: %v\n", err)
 			os.Exit(1)
@@ -113,4 +122,12 @@ func runDirectory(dirPath string, serverURL string) int {
 		return 1
 	}
 	return 0
+}
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
 }

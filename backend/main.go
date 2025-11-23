@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Create server on port 8080
-	srv, err := server.NewServer(":8080")
+	srv, err := server.NewServer(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}

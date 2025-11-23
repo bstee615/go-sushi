@@ -1,0 +1,45 @@
+# Simple custom deal test
+deals:
+  1:
+    A:
+      - tempura
+      - sashimi
+    B:
+      - dumpling
+      - pudding
+
+turns:
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Alice"
+  
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <response.gameId>
+        playerName: "Bob"
+  
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <response.gameId>
+  
+  # Select by card name instead of index
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: tempura
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: dumpling
+        useChopsticks: false

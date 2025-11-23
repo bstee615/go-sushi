@@ -9,19 +9,22 @@ import (
 
 // TestRunner orchestrates playtest execution
 type TestRunner struct {
-	clients   map[string]*ClientSimulator
-	store     *VariableStore
-	serverURL string
-	verbose   bool
+	clients      map[string]*ClientSimulator
+	store        *VariableStore
+	serverURL    string
+	verbose      bool
+	playtest     *PlaytestDefinition
+	clientIDMap  map[string]string // client name -> player ID
 }
 
 // NewTestRunner creates a new test runner
 func NewTestRunner(serverURL string) *TestRunner {
 	return &TestRunner{
-		clients:   make(map[string]*ClientSimulator),
-		store:     NewVariableStore(),
-		serverURL: serverURL,
-		verbose:   false,
+		clients:     make(map[string]*ClientSimulator),
+		store:       NewVariableStore(),
+		serverURL:   serverURL,
+		verbose:     false,
+		clientIDMap: make(map[string]string),
 	}
 }
 
@@ -47,6 +50,24 @@ func (r *TestRunner) executeTurn(turn Turn, turnNum int) error {
 	message, err := r.store.Substitute(turn.Message)
 	if err != nil {
 		return fmt.Errorf("turn %d: variable substitution failed: %w", turnNum, err)
+	}
+
+	// Process card selection if this is a select_card message
+	if msgType, ok := message["type"].(string); ok && msgType == "select_card" {
+		if payload, ok := message["payload"].(map[string]interface{}); ok {
+			// Get the most recent game state
+			gameState := client.GetGameState()
+			
+			// Only process if we have a hand to work with
+			if myHand, ok := gameState["myHand"].([]interface{}); ok && len(myHand) > 0 {
+				processedPayload, err := ProcessSelectCardPayload(payload, gameState)
+				if err != nil {
+					return fmt.Errorf("turn %d: failed to process card selection: %w", turnNum, err)
+				}
+				message["payload"] = processedPayload
+			}
+			// If no hand yet, leave cardIndex as-is (might be a number already)
+		}
 	}
 
 	// Send the message
@@ -80,6 +101,8 @@ func (r *TestRunner) RunPlaytest(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse playtest: %w", err)
 	}
+
+	r.playtest = playtest
 
 	// Execute each turn sequentially
 	for i, turn := range playtest.Turns {

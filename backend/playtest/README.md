@@ -66,9 +66,22 @@ Test files are written in YAML and define a sequence of turns. Each turn specifi
 - A client identifier (e.g., "A", "B", "Player1")
 - A message to send to the server
 
+Optionally, you can specify custom card deals for deterministic testing.
+
 ### Basic Structure
 
 ```yaml
+# Optional: Define custom card deals
+deals:
+  1:  # Round number
+    A:  # Client identifier
+      - card_spec_1
+      - card_spec_2
+    B:
+      - card_spec_1
+      - card_spec_2
+
+# Required: Define the sequence of actions
 turns:
   - client: A
     message:
@@ -186,6 +199,79 @@ turns:
         cardIndex: 0
         useChopsticks: false
 ```
+
+### Custom Card Deals
+
+You can specify exact cards to deal to each player for deterministic testing. This is useful for testing specific game scenarios.
+
+**Card Specification Format:**
+- `type` - Basic card type (e.g., `tempura`, `sashimi`, `dumpling`)
+- `type:variant` - Card with variant (e.g., `nigiri:squid`, `nigiri:salmon`, `nigiri:egg`)
+- `type::value` - Card with value (e.g., `maki_roll::2`, `maki_roll::3`)
+
+**Example:**
+```yaml
+deals:
+  1:  # Round 1
+    A:  # Client A's hand
+      - tempura
+      - tempura
+      - sashimi
+      - nigiri:squid
+      - maki_roll::2
+    B:  # Client B's hand
+      - sashimi
+      - sashimi
+      - tempura
+      - nigiri:salmon
+      - maki_roll::3
+
+turns:
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Alice"
+  # ... rest of test
+```
+
+**Important Notes:**
+- Players receive cards in the order they join the game
+- Client names are sorted alphabetically to determine player order
+- All players must have the same number of cards
+- Use `--start-server` flag to use custom deals (they only work with the test server)
+
+### Card Selection by Name
+
+Instead of selecting cards by index, you can select them by card specification. This makes tests more readable and resilient to hand order changes.
+
+**Example:**
+```yaml
+- client: A
+  message:
+    type: select_card
+    payload:
+      cardIndex: tempura  # Selects first tempura in hand
+      useChopsticks: false
+
+- client: B
+  message:
+    type: select_card
+    payload:
+      cardIndex: nigiri:squid  # Selects squid nigiri
+      useChopsticks: false
+```
+
+**Card Selection Formats:**
+- `tempura` - Selects first tempura card
+- `nigiri:squid` - Selects squid nigiri (3 points)
+- `nigiri:salmon` - Selects salmon nigiri (2 points)
+- `nigiri:egg` - Selects egg nigiri (1 point)
+- `maki_roll::2` - Selects maki roll with 2 icons
+- `0` - Still works! Select by index (0-based)
+
+The runner will automatically find the first matching card in your hand and convert it to the correct index.
 
 ## Output
 

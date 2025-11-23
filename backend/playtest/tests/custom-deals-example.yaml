@@ -1,0 +1,65 @@
+# Custom deals example
+# Demonstrates specifying exact cards to deal and selecting cards by name
+
+deals:
+  1:  # Round 1
+    A:  # Client A gets these cards
+      - tempura
+      - tempura
+      - sashimi
+      - dumpling
+      - nigiri:squid
+      - maki_roll::2
+      - wasabi
+      - chopsticks
+      - pudding
+      - nigiri:salmon
+    B:  # Client B gets these cards
+      - sashimi
+      - sashimi
+      - tempura
+      - dumpling
+      - dumpling
+      - nigiri:egg
+      - maki_roll::3
+      - maki_roll::1
+      - pudding
+      - wasabi
+
+turns:
+  # Setup game
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Alice"
+  
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <response.gameId>
+        playerName: "Bob"
+  
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <response.gameId>
+  
+  # Player A selects tempura by name (not index)
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: tempura
+        useChopsticks: false
+  
+  # Player B selects sashimi by name
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: sashimi
+        useChopsticks: false

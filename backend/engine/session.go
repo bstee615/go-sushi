@@ -21,14 +21,27 @@ var (
 
 // Engine is the concrete implementation of GameEngine
 type Engine struct {
-	games map[string]*models.Game
-	mu    sync.RWMutex
+	games  map[string]*models.Game
+	dealer CardDealer
+	mu     sync.RWMutex
 }
 
-// NewEngine creates a new game engine
+// NewEngine creates a new game engine with default dealer
 func NewEngine() *Engine {
 	return &Engine{
-		games: make(map[string]*models.Game),
+		games:  make(map[string]*models.Game),
+		dealer: &DefaultDealer{},
+	}
+}
+
+// NewEngineWithDealer creates a new game engine with a custom dealer
+func NewEngineWithDealer(dealer CardDealer) *Engine {
+	if dealer == nil {
+		dealer = &DefaultDealer{}
+	}
+	return &Engine{
+		games:  make(map[string]*models.Game),
+		dealer: dealer,
 	}
 }
 
@@ -184,18 +197,12 @@ func (e *Engine) StartRound(gameID string) error {
 		return ErrGameNotFound
 	}
 
-	// Initialize and shuffle deck
-	deck := InitializeDeck()
-	game.Deck = ShuffleDeck(deck)
-
-	// Deal cards to players
-	players, remainingDeck, err := DealCards(game.Deck, game.Players)
+	// Use the dealer to deal cards
+	err := e.dealer.DealCards(game.Players, game.CurrentRound)
 	if err != nil {
 		return err
 	}
 
-	game.Players = players
-	game.Deck = remainingDeck
 	game.RoundPhase = models.PhaseSelecting
 
 	// Clear selected cards

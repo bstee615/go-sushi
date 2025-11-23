@@ -9,7 +9,8 @@ import (
 
 // PlaytestDefinition represents a complete playtest scenario
 type PlaytestDefinition struct {
-	Turns []Turn `yaml:"turns"`
+	Deals map[int]map[string][]string `yaml:"deals,omitempty"` // round -> client -> card specs
+	Turns []Turn                       `yaml:"turns"`
 }
 
 // Turn represents a single client action in a playtest

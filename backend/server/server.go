@@ -9,6 +9,12 @@ import (
 	"github.com/sushi-go-game/backend/handlers"
 )
 
+// ServerOptions configures the server
+type ServerOptions struct {
+	// CustomDealer allows specifying custom card deals for testing
+	CustomDealer engine.CardDealer
+}
+
 // Server represents a game server instance
 type Server struct {
 	engine   *engine.Engine
@@ -21,7 +27,11 @@ type Server struct {
 
 // NewServer creates a new server that listens on the specified address
 // Use ":0" for a random port, or ":8080" for a specific port
-func NewServer(addr string) (*Server, error) {
+func NewServer(addr string, options *ServerOptions) (*Server, error) {
+	if options == nil {
+		options = &ServerOptions{}
+	}
+
 	// Create listener
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -30,8 +40,8 @@ func NewServer(addr string) (*Server, error) {
 
 	port := listener.Addr().(*net.TCPAddr).Port
 	
-	// Initialize game engine
-	gameEngine := engine.NewEngine()
+	// Initialize game engine with custom dealer if provided
+	gameEngine := engine.NewEngineWithDealer(options.CustomDealer)
 	
 	// Initialize WebSocket handler
 	wsHandler := handlers.NewWSHandler(gameEngine)
