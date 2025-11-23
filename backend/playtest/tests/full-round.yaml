@@ -1,0 +1,174 @@
+# Full round test
+# Tests completing a full round of card selection (10 turns for 2 players)
+
+turns:
+  # Setup: Create game and join
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Player A"
+  
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <globalGame>
+        playerName: "Player B"
+  
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <globalGame>
+  
+  # Turn 1
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 2
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 3
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 4
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 5
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 6
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 7
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 8
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 9
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  # Turn 10 (final turn of the round)
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false

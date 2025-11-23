@@ -1,0 +1,56 @@
+# Three-player game test
+# Tests game creation, joining, and starting with three players
+
+turns:
+  # Player A creates a new game
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Alice"
+  
+  # Player B joins the game
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <globalGame>
+        playerName: "Bob"
+  
+  # Player C joins the game
+  - client: C
+    message:
+      type: join_game
+      payload:
+        gameId: <globalGame>
+        playerName: "Charlie"
+  
+  # Player A starts the game
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <globalGame>
+  
+  # All three players select cards
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 1
+        useChopsticks: false
+  
+  - client: C
+    message:
+      type: select_card
+      payload:
+        cardIndex: 2
+        useChopsticks: false

@@ -1,0 +1,30 @@
+turns:
+- client: A
+  message:
+    type: join_game
+    payload:
+      gameId: ""
+      playerName: "Player A"
+- client: B
+  message:
+    type: join_game
+    payload:
+      gameId: <globalGame>
+      playerName: "Player B"
+- client: A
+  message:
+    type: start_game
+    payload:
+      gameId: <globalGame>
+- client: A
+  message:
+    type: select_card
+    payload:
+      cardIndex: 0
+      useChopsticks: false
+- client: B
+  message:
+    type: select_card
+    payload:
+      cardIndex: 0
+      useChopsticks: false

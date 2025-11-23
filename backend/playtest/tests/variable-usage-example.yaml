@@ -1,0 +1,43 @@
+# Variable usage example
+# Demonstrates how the <globalGame> variable is automatically captured and reused
+
+turns:
+  # Step 1: Player A creates a new game
+  # The server will respond with a gameId, which is automatically stored as <globalGame>
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""  # Empty string means "create new game"
+        playerName: "Host Player"
+  
+  # Step 2: Player B joins using the captured game ID
+  # <globalGame> is substituted with the actual game ID from step 1
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <globalGame>  # This will be replaced with the actual game ID
+        playerName: "Guest Player"
+  
+  # Step 3: Player A starts the game using the same variable
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <globalGame>  # Same game ID is used here
+  
+  # Step 4: Both players can now play
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
