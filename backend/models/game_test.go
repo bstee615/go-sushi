@@ -57,26 +57,26 @@ func createTestGame(id string, round int, phase RoundPhase, createdAt time.Time)
 	// Create test players
 	players := []*Player{
 		{
-			ID:            "player1",
-			Name:          "Alice",
-			Hand:          []Card{{ID: "c1", Type: CardTypeMakiRoll, Value: 2}},
-			Collection:    []Card{{ID: "c2", Type: CardTypeTempura}},
-			PuddingCards:  []Card{{ID: "c3", Type: CardTypePudding}},
-			Score:         10,
-			RoundScores:   []int{5, 5},
-			HasChopsticks: true,
-			SelectedCard:  nil,
+			ID:              "player1",
+			Name:            "Alice",
+			Hand:            []Card{{ID: "c1", Type: CardTypeMakiRoll, Value: 2}},
+			Collection:      []Card{{ID: "c2", Type: CardTypeTempura}},
+			PuddingCards:    []Card{{ID: "c3", Type: CardTypePudding}},
+			Score:           10,
+			RoundScores:     []int{5, 5},
+			ChopsticksCount: 1,
+			SelectedCard:    nil,
 		},
 		{
-			ID:            "player2",
-			Name:          "Bob",
-			Hand:          []Card{{ID: "c4", Type: CardTypeNigiri, Variant: "Squid", Value: 3}},
-			Collection:    []Card{{ID: "c5", Type: CardTypeWasabi}},
-			PuddingCards:  []Card{},
-			Score:         8,
-			RoundScores:   []int{3, 5},
-			HasChopsticks: false,
-			SelectedCard:  intPtr(0),
+			ID:              "player2",
+			Name:            "Bob",
+			Hand:            []Card{{ID: "c4", Type: CardTypeNigiri, Variant: "Squid", Value: 3}},
+			Collection:      []Card{{ID: "c5", Type: CardTypeWasabi}},
+			PuddingCards:    []Card{},
+			Score:           8,
+			RoundScores:     []int{3, 5},
+			ChopsticksCount: 0,
+			SelectedCard:    intPtr(0),
 		},
 	}
 
@@ -150,7 +150,7 @@ func gamesEqual(g1, g2 *Game) bool {
 
 // playersEqual checks if two players are equal
 func playersEqual(p1, p2 *Player) bool {
-	if p1.ID != p2.ID || p1.Name != p2.Name || p1.Score != p2.Score || p1.HasChopsticks != p2.HasChopsticks {
+	if p1.ID != p2.ID || p1.Name != p2.Name || p1.Score != p2.Score || p1.ChopsticksCount != p2.ChopsticksCount {
 		return false
 	}
 	if len(p1.Hand) != len(p2.Hand) || len(p1.Collection) != len(p2.Collection) || len(p1.PuddingCards) != len(p2.PuddingCards) {

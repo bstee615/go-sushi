@@ -329,7 +329,7 @@ func TestHandPassingPreservesCardCount(t *testing.T) {
 			// Each player selects a card (first card in their hand)
 			for _, player := range game.Players {
 				if len(player.Hand) > 0 {
-					err = engine.PlayCard(game.ID, player.ID, 0, false)
+					err = engine.PlayCard(game.ID, player.ID, 0, false, nil)
 					if err != nil {
 						t.Logf("Failed to play card: %v", err)
 						return false
@@ -446,7 +446,7 @@ func TestSimultaneousCardReveal(t *testing.T) {
 			for i := 0; i < numPlayersToSelect; i++ {
 				player := game.Players[i]
 				if len(player.Hand) > 0 {
-					err = engine.PlayCard(game.ID, player.ID, 0, false)
+					err = engine.PlayCard(game.ID, player.ID, 0, false, nil)
 					if err != nil {
 						t.Logf("Failed to play card: %v", err)
 						return false
@@ -480,7 +480,7 @@ func TestSimultaneousCardReveal(t *testing.T) {
 			// Now have the last player select a card
 			lastPlayer := game.Players[playerCount-1]
 			if len(lastPlayer.Hand) > 0 {
-				err = engine.PlayCard(game.ID, lastPlayer.ID, 0, false)
+				err = engine.PlayCard(game.ID, lastPlayer.ID, 0, false, nil)
 				if err != nil {
 					t.Logf("Failed to play card for last player: %v", err)
 					return false
@@ -606,7 +606,7 @@ func TestRoundProgressionIsSequential(t *testing.T) {
 					// Each player selects a card
 					for _, player := range game.Players {
 						if len(player.Hand) > 0 {
-							err = engine.PlayCard(game.ID, player.ID, 0, false)
+							err = engine.PlayCard(game.ID, player.ID, 0, false, nil)
 							if err != nil {
 								t.Logf("Failed to play card in round %d, turn %d: %v", expectedRound, turn, err)
 								return false
@@ -1071,7 +1071,7 @@ func TestPlayerReconnectionPreservesState(t *testing.T) {
 			for i := 1; i < playerCount; i++ {
 				player := game.Players[i]
 				if len(player.Hand) > 0 {
-					err = engine.PlayCard(game.ID, player.ID, 0, false)
+					err = engine.PlayCard(game.ID, player.ID, 0, false, nil)
 					if err != nil {
 						t.Logf("Failed to play card: %v", err)
 						return false

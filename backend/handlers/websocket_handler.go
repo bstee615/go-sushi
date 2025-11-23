@@ -527,12 +527,8 @@ func (h *WSHandler) handleKickPlayer(client *Client, payload json.RawMessage) {
 
 	// Remove the player from the game (but don't close connection - let client handle that)
 	h.mu.Lock()
-	if gameClients, ok := h.games[client.gameID]; ok {
-		delete(gameClients, data.PlayerID)
-	}
-	if _, exists := h.clients[data.PlayerID]; exists {
-		delete(h.clients, data.PlayerID)
-	}
+	delete(h.games[client.gameID], data.PlayerID)
+	delete(h.clients, data.PlayerID)
 	h.mu.Unlock()
 
 	// Remove player from game engine
