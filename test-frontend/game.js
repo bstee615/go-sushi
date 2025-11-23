@@ -439,7 +439,9 @@ function updateHand(animationType = null) {
     
     // Check if player has chopsticks and if they've already selected
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
-    const hasChopsticks = myPlayer?.collection?.some(card => card.type === 'chopsticks');
+    // Check both collection (for played chopsticks) and hasChopsticks flag (backend tracks availability)
+    const hasChopsticksInCollection = myPlayer?.collection?.some(card => card.type === 'chopsticks');
+    const canUseChopsticks = myPlayer?.hasChopsticks !== undefined ? myPlayer.hasChopsticks : hasChopsticksInCollection;
     const hasSelected = myPlayer?.hasSelected;
     
     // If player has already selected, show waiting indicator separately
@@ -453,8 +455,8 @@ function updateHand(animationType = null) {
         handDiv.appendChild(waitingDiv);
     }
     
-    // Show chopsticks toggle and controls
-    if (hasChopsticks && gameState.phase === 'selecting') {
+    // Show chopsticks toggle and controls (only if chopsticks are available to use)
+    if (canUseChopsticks && gameState.phase === 'selecting' && !hasSelected) {
         const controlsDiv = document.createElement('div');
         controlsDiv.style.cssText = 'background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 15px;';
         
@@ -599,14 +601,24 @@ function updatePlayersList() {
         const isMe = player.id === myPlayerId;
         const selectedIndicator = player.hasSelected ? '✓' : '○';
         
+        // Calculate maki count for this player
+        let makiCount = 0;
+        if (player.collection) {
+            player.collection.forEach(card => {
+                if (card.type === 'maki_roll') {
+                    makiCount += card.value || 0;
+                }
+            });
+        }
+        
         li.innerHTML = `
             <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
             <div class="player-stats">
-                Score: ${player.score} | Hand: ${player.handSize} cards
+                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
-                    `<span class="collection-card">${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}</span>`
+                    `<span class="collection-card">${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}${card.type === 'maki_roll' ? ` [${card.value || 0}]` : ''}</span>`
                 ).join('') : '<span style="color: #999;">No cards yet</span>'}
             </div>
         `;
@@ -628,12 +640,98 @@ function updateCollection() {
         return;
     }
     
+    // Count card types for set completion
+    const cardCounts = {};
+    let totalMakiValue = 0;
+    
     myPlayer.collection.forEach(card => {
+        cardCounts[card.type] = (cardCounts[card.type] || 0) + 1;
+        if (card.type === 'maki_roll') {
+            totalMakiValue += card.value || 0;
+        }
+    });
+    
+    // Track wasabi usage
+    let unusedWasabiCount = cardCounts['wasabi'] || 0;
+    
+    // Track set completion indices
+    let tempuraCount = 0;
+    let sashimiCount = 0;
+    let dumplingCount = 0;
+    
+    // Display cards with indicators
+    myPlayer.collection.forEach((card, index) => {
         const cardEl = document.createElement('span');
         cardEl.className = 'collection-card';
-        cardEl.textContent = `${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}`;
+        
+        let cardText = `${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}`;
+        let isSetComplete = false;
+        
+        // Check for set completion
+        if (card.type === 'tempura') {
+            tempuraCount++;
+            if (tempuraCount % 2 === 0) {
+                cardText += ' ✓5pts';
+                isSetComplete = true;
+            }
+        } else if (card.type === 'sashimi') {
+            sashimiCount++;
+            if (sashimiCount % 3 === 0) {
+                cardText += ' ✓10pts';
+                isSetComplete = true;
+            }
+        } else if (card.type === 'dumpling') {
+            dumplingCount++;
+            // Show points for dumplings: 1=1, 2=3, 3=6, 4=10, 5+=15
+            const points = dumplingCount >= 5 ? 15 : [0, 1, 3, 6, 10][dumplingCount];
+            cardText += ` (${points}pts)`;
+        } else if (card.type === 'maki_roll') {
+            cardText += ` [${card.value || 0}]`;
+        }
+        
+        // Check if this is a wasabi that's been used
+        if (card.type === 'wasabi') {
+            // Count nigiri cards that come after this wasabi
+            let hasNigiriAfter = false;
+            
+            for (let i = index + 1; i < myPlayer.collection.length; i++) {
+                if (myPlayer.collection[i].type === 'nigiri') {
+                    hasNigiriAfter = true;
+                    break;
+                }
+            }
+            
+            if (hasNigiriAfter) {
+                // Wasabi has been used - show as green
+                cardEl.style.background = '#4caf50';
+                cardEl.style.color = 'white';
+            }
+        }
+        
+        // Check if this is a nigiri that can use wasabi
+        if (card.type === 'nigiri' && unusedWasabiCount > 0) {
+            cardText += ' 3x';
+            unusedWasabiCount--; // Mark this wasabi as used
+        }
+        
+        // Highlight completed sets
+        if (isSetComplete) {
+            cardEl.style.background = '#ffd700';
+            cardEl.style.color = '#333';
+            cardEl.style.fontWeight = 'bold';
+        }
+        
+        cardEl.textContent = cardText;
         collectionDiv.appendChild(cardEl);
     });
+    
+    // Show total maki count if any
+    if (totalMakiValue > 0) {
+        const makiTotal = document.createElement('div');
+        makiTotal.style.cssText = 'margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 4px; font-weight: bold; color: #1565c0;';
+        makiTotal.textContent = `🍣 Total Maki: ${totalMakiValue}`;
+        collectionDiv.appendChild(makiTotal);
+    }
 }
 
 function formatCardType(type) {

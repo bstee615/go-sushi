@@ -246,6 +246,16 @@ func (e *Engine) PlayCard(gameID, playerID string, cardIndex int, useChopsticks 
 		return errors.New("player has already selected a card")
 	}
 
+	// If using chopsticks, validate and mark for special handling
+	if useChopsticks {
+		if !player.HasChopsticks {
+			return errors.New("player does not have chopsticks")
+		}
+		// Chopsticks usage will be handled in RevealCards
+		// For now, just mark that chopsticks were used
+		player.HasChopsticks = false
+	}
+
 	// Store the selected card index
 	player.SelectedCard = &cardIndex
 
