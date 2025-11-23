@@ -1,0 +1,10 @@
+.git
+.kiro
+.vscode
+*.md
+backend/bin
+backend/*.exe
+backend/playtest
+backend/*_test.go
+frontend/node_modules
+frontend/dist

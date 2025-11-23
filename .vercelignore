@@ -1,8 +1,0 @@
-backend/bin
-backend/*.exe
-backend/playtest
-.git
-.kiro
-.vscode
-*.md
-backend/*_test.go
