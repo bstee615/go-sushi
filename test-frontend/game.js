@@ -127,6 +127,8 @@ function handleMessage(data) {
 function handleGameState(payload) {
     const previousHand = gameState?.myHand;
     const newHand = payload.myHand;
+    const previousSelected = gameState?.players?.find(p => p.id === myPlayerId)?.hasSelected;
+    const currentSelected = payload.players?.find(p => p.id === myPlayerId)?.hasSelected;
     
     gameState = payload;
     
@@ -147,6 +149,12 @@ function handleGameState(payload) {
         selectedCardIndex = null;
         secondCardIndex = null;
         chopsticksMode = false;
+    }
+    
+    // If player withdrew their card (was selected, now not selected), clear UI selection
+    if (previousSelected && !currentSelected) {
+        selectedCardIndex = null;
+        secondCardIndex = null;
     }
     
     // Update UI
@@ -250,24 +258,38 @@ function selectCard(index) {
     }
     
     if (chopsticksMode) {
-        // In chopsticks mode, allow selecting two cards
-        if (selectedCardIndex === null) {
-            // First card
+        // In chopsticks mode, allow selecting/deselecting two cards
+        if (index === selectedCardIndex) {
+            // Deselect first card
+            selectedCardIndex = null;
+            updateHand();
+            log('First card deselected', 'info');
+        } else if (index === secondCardIndex) {
+            // Deselect second card
+            secondCardIndex = null;
+            updateHand();
+            log('Second card deselected', 'info');
+        } else if (selectedCardIndex === null) {
+            // Select first card
             selectedCardIndex = index;
             updateHand();
             log('First card selected. Select a second card.', 'info');
         } else if (secondCardIndex === null) {
-            // Second card
-            if (index === selectedCardIndex) {
-                log('Cannot select the same card twice', 'error');
-                return;
-            }
+            // Select second card and auto-submit
             secondCardIndex = index;
+            
+            // Immediately send both selections
+            sendMessage('select_card', {
+                cardIndex: selectedCardIndex,
+                useChopsticks: true,
+                secondCardIndex: secondCardIndex
+            });
+            
+            log(`Played cards at indices ${selectedCardIndex} and ${secondCardIndex} using chopsticks`, 'sent');
             updateHand();
-            log('Second card selected. Click "Play Cards" to submit.', 'info');
         } else {
-            // Both cards already selected, allow changing selection
-            log('Both cards already selected. Click "Play Cards" or deselect first.', 'info');
+            // Both already selected, replace one
+            log('Both cards already selected. Click a selected card to deselect it.', 'info');
         }
     } else {
         // Normal mode - auto-submit single card
@@ -356,7 +378,19 @@ function updatePhaseIndicator() {
     
     phaseIndicator.className = 'phase-indicator';
     const round = gameState.currentRound || gameState.current_round || 0;
-    phaseIndicator.textContent = `Round ${round} - ${gameState.phase}`;
+    
+    // Calculate turn number (each round has multiple turns as hands are passed)
+    const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
+    const handSize = myPlayer?.handSize || 0;
+    const initialHandSize = gameState.phase === 'selecting' ? handSize : 0;
+    
+    // Estimate turn based on cards remaining (rough approximation)
+    let turnInfo = '';
+    if (gameState.phase === 'selecting' && handSize > 0) {
+        turnInfo = ` - Turn ${11 - handSize}`;
+    }
+    
+    phaseIndicator.textContent = `Round ${round}${turnInfo} - ${gameState.phase}`;
 }
 
 function updateHand() {
@@ -431,7 +465,7 @@ function updateHand() {
         controlsDiv.style.cssText = 'background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 15px;';
         
         const toggleBtn = document.createElement('button');
-        toggleBtn.textContent = chopsticksMode ? '🥢 Chopsticks Mode: ON' : '🥢 Use Chopsticks';
+        toggleBtn.textContent = chopsticksMode ? '🥢 Put Away Chopsticks' : '🥢 Use Chopsticks!';
         toggleBtn.onclick = toggleChopsticks;
         toggleBtn.style.cssText = `
             padding: 8px 16px;
@@ -446,49 +480,16 @@ function updateHand() {
         
         controlsDiv.appendChild(toggleBtn);
         
-        // Show play/clear buttons if in chopsticks mode and cards are selected
-        if (chopsticksMode && selectedCardIndex !== null) {
-            const playBtn = document.createElement('button');
-            playBtn.textContent = 'Play 2 Cards';
-            playBtn.onclick = playCards;
-            playBtn.style.cssText = `
-                padding: 8px 16px;
-                background: #ff9800;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-weight: 600;
-                margin-right: 10px;
-            `;
-            
-            const clearBtn = document.createElement('button');
-            clearBtn.textContent = 'Clear';
-            clearBtn.onclick = clearSelection;
-            clearBtn.style.cssText = `
-                padding: 8px 16px;
-                background: #f44336;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-weight: 600;
-            `;
-            
-            controlsDiv.appendChild(playBtn);
-            controlsDiv.appendChild(clearBtn);
-        }
-        
         // Show status message
         const statusDiv = document.createElement('div');
         statusDiv.style.cssText = 'margin-top: 8px; font-size: 14px; color: #666;';
         if (chopsticksMode) {
             if (selectedCardIndex === null) {
-                statusDiv.textContent = '📌 Select your first card';
+                statusDiv.textContent = '📌 Select your first card (click to deselect)';
             } else if (secondCardIndex === null) {
-                statusDiv.textContent = '📌 Select your second card';
+                statusDiv.textContent = '📌 Select your second card (auto-submits when both selected)';
             } else {
-                statusDiv.textContent = '✓ Both cards selected - click "Play 2 Cards"';
+                statusDiv.textContent = '✓ Both cards selected - submitting...';
             }
         } else {
             statusDiv.textContent = '📌 Click a card to play it immediately';
