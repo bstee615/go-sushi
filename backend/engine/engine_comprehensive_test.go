@@ -545,9 +545,9 @@ func TestEngineEndGame(t *testing.T) {
 	game.Players[1].Score = 15
 	game.Players[1].Name = "Player 2"
 	
-	// Set game to round_end phase (last round completed)
+	// Set game to game_end phase
 	game.CurrentRound = 3
-	game.RoundPhase = models.PhaseRoundEnd
+	game.RoundPhase = models.PhaseGameEnd
 
 	result, err := engine.EndGame(game.ID)
 	if err != nil {
