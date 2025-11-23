@@ -12,7 +12,10 @@
     <div id="loginScreen" class="container screen">
         <div class="header">
             <h1>🍣 Sushi Go!</h1>
-            <span id="connectionStatus" class="connection-status status-connected">Connected</span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="SushiGoTM-RULES.pdf" target="_blank" style="padding: 8px 15px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">📖 Instructions</a>
+                <span id="connectionStatus" class="connection-status status-connected">Connected</span>
+            </div>
         </div>
         
         <div class="controls">
@@ -58,6 +61,7 @@
                     <strong>Game:</strong> <span id="gameIdDisplay"></span>
                     <button onclick="copyGameId()" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Copy</button>
                 </div>
+                <a href="SushiGoTM-RULES.pdf" target="_blank" style="padding: 8px 15px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">📖 Instructions</a>
                 <button id="startBtn" onclick="startGame()" disabled>Start Game</button>
                 <button onclick="logout()" style="background: #dc3545;">Logout</button>
             </div>
