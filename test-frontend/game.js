@@ -759,33 +759,43 @@ function updatePhaseIndicator() {
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
     const handSize = myPlayer?.handSize || 0;
     
-    // Create round dots (3 rounds total)
-    const roundDotsArray = [];
+    // Create round numbers (3 rounds total)
+    const roundNumbersArray = [];
     for (let i = 1; i <= 3; i++) {
+        let color, fontWeight;
         if (i < round) {
-            roundDotsArray.push('🟢'); // Completed round
+            color = '#4caf50'; // Green - Completed round
+            fontWeight = 'bold';
         } else if (i === round) {
-            roundDotsArray.push('🔵'); // Current round
+            color = '#2196F3'; // Blue - Current round
+            fontWeight = 'bold';
         } else {
-            roundDotsArray.push('⚪'); // Future round
+            color = '#999'; // Gray - Future round
+            fontWeight = 'normal';
         }
+        roundNumbersArray.push(`<span style="color: ${color}; font-weight: ${fontWeight}; font-size: 18px;">${i}</span>`);
     }
-    roundDots.innerHTML = roundDotsArray.join(' ');
+    roundDots.innerHTML = roundNumbersArray.join(' ');
     
-    // Create turn dots (10 turns per round, based on cards remaining)
+    // Create turn numbers (10 turns per round, based on cards remaining)
     if (round > 0 && round <= 3) {
         const currentTurn = handSize > 0 ? 11 - handSize : 10;
-        const turnDotsArray = [];
+        const turnNumbersArray = [];
         for (let i = 1; i <= 10; i++) {
+            let color, fontWeight;
             if (i < currentTurn) {
-                turnDotsArray.push('🟢'); // Completed turn
+                color = '#4caf50'; // Green - Completed turn
+                fontWeight = 'bold';
             } else if (i === currentTurn) {
-                turnDotsArray.push('🔵'); // Current turn
+                color = '#2196F3'; // Blue - Current turn
+                fontWeight = 'bold';
             } else {
-                turnDotsArray.push('⚪'); // Future turn
+                color = '#999'; // Gray - Future turn
+                fontWeight = 'normal';
             }
+            turnNumbersArray.push(`<span style="color: ${color}; font-weight: ${fontWeight}; font-size: 16px;">${i}</span>`);
         }
-        turnDots.innerHTML = turnDotsArray.join(' ');
+        turnDots.innerHTML = turnNumbersArray.join(' ');
         turnIndicator.style.display = 'flex';
     } else {
         turnDots.innerHTML = '';
