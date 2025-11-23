@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { wsStore, type GameState } from './websocket';
-  import GameCanvas from './GameCanvas.svelte';
+  import { wsStore, type GameState, type Card } from './websocket';
 
   export let onLogout: () => void;
 
@@ -30,7 +29,6 @@
 
     const myPlayer = gameState.players?.find(p => p.id === gameState.myPlayerId);
     if (myPlayer?.hasSelected) {
-      console.log('Already selected, withdrawing...');
       withdrawCard();
       return;
     }
@@ -44,7 +42,6 @@
         selectedCardIndex = index;
       } else if (secondCardIndex === null) {
         secondCardIndex = index;
-        // Auto-submit both cards
         wsStore.sendMessage('select_card', {
           cardIndex: selectedCardIndex,
           useChopsticks: true,
@@ -54,7 +51,6 @@
     } else {
       selectedCardIndex = index;
       secondCardIndex = null;
-      // Auto-submit single card
       wsStore.sendMessage('select_card', {
         cardIndex: selectedCardIndex,
         useChopsticks: false
@@ -86,6 +82,34 @@
     wsStore.sendMessage('kick_player', { playerId });
   }
 
+  function getCardColor(type: string): string {
+    const colors: Record<string, string> = {
+      'maki_roll': 'from-red-400 to-red-600',
+      'tempura': 'from-orange-400 to-orange-600',
+      'sashimi': 'from-pink-400 to-pink-600',
+      'dumpling': 'from-purple-400 to-purple-600',
+      'nigiri': 'from-cyan-400 to-cyan-600',
+      'wasabi': 'from-green-400 to-green-600',
+      'chopsticks': 'from-yellow-400 to-yellow-600',
+      'pudding': 'from-amber-400 to-amber-600'
+    };
+    return colors[type] || 'from-gray-400 to-gray-600';
+  }
+
+  function getCardEmoji(type: string): string {
+    const emojis: Record<string, string> = {
+      'maki_roll': '🍣',
+      'tempura': '🍤',
+      'sashimi': '🐟',
+      'dumpling': '🥟',
+      'nigiri': '🍱',
+      'wasabi': '🟢',
+      'chopsticks': '🥢',
+      'pudding': '🍮'
+    };
+    return emojis[type] || '🎴';
+  }
+
   function formatCardType(type: string): string {
     return type.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
@@ -95,36 +119,44 @@
   $: canStartGame = gameState?.phase === 'waiting' && (gameState?.players?.length || 0) >= 2;
   $: myPlayer = gameState?.players?.find(p => p.id === gameState?.myPlayerId);
   $: canUseChopsticks = (myPlayer?.chopsticksCount || 0) > 0;
+  $: myHand = gameState?.myHand || [];
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-primary to-purple-600 p-5 animate-fade-in">
+<div class="min-h-screen p-4 sm:p-6 animate-fade-in">
   <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="bg-white rounded-lg shadow-lg p-5 mb-5">
-      <div class="flex items-center justify-between flex-wrap gap-4">
-        <h1 class="text-3xl font-bold text-gray-800">🍣 Sushi Go! Game</h1>
-        <div class="flex items-center gap-4 flex-wrap">
-          {#if gameState?.gameId}
-            <div class="px-4 py-2 bg-gray-100 rounded-md">
-              <strong>Game:</strong> {gameState.gameId}
-              <button 
-                on:click={copyGameId}
-                class="ml-2 px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary-dark"
-              >
-                Copy
-              </button>
-            </div>
+    <div class="japanese-header rounded-2xl p-4 sm:p-6 mb-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-4xl">🏮</span>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-shadow">Sushi Go! Game</h1>
+            {#if gameState?.gameId}
+              <div class="text-sm opacity-90 mt-1">
+                Table: <span class="font-mono font-bold">{gameState.gameId}</span>
+                <button 
+                  on:click={copyGameId}
+                  class="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30 transition-all"
+                >
+                  📋 Copy
+                </button>
+              </div>
+            {/if}
+          </div>
+        </div>
+        <div class="flex gap-3">
+          {#if canStartGame}
+            <button 
+              on:click={startGame}
+              class="btn-primary animate-pulse-rotate"
+            >
+              <span class="text-xl mr-1">⭐</span>
+              Start Game!
+            </button>
           {/if}
           <button 
-            on:click={startGame}
-            disabled={!canStartGame}
-            class="px-4 py-2 bg-primary text-white rounded text-sm font-semibold hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            Start Game
-          </button>
-          <button 
             on:click={onLogout}
-            class="px-4 py-2 bg-red-600 text-white rounded text-sm font-semibold hover:bg-red-700"
+            class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
           >
             Logout
           </button>
@@ -132,167 +164,203 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <!-- Main Game Area (Left side, larger) -->
-      <div class="lg:col-span-2 space-y-5">
-        <!-- Hand Panel -->
-        <div class="bg-white rounded-lg shadow-lg p-5">
-          <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-gray-200">Your Hand</h2>
-          
+    <!-- Main Game Area -->
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Left: Hand and Collection (Takes 2 columns) -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Your Hand -->
+        <div class="card-base p-6">
+          <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center">
+            <span class="text-3xl mr-2">🎴</span>
+            Your Hand
+          </h2>
+
           {#if gameState?.phase === 'waiting'}
+            <!-- Waiting State -->
             <div class="text-center py-16">
-              <div class="text-5xl mb-5">🍣</div>
-              <div class="text-2xl font-bold text-gray-800 mb-2">Ready to Play!</div>
-              <div class="text-lg text-gray-600">Click "Start Game" to begin</div>
+              <div class="text-7xl mb-4 animate-bounce">🍣</div>
+              <div class="text-2xl font-bold text-amber-900 mb-2">Ready to Play!</div>
+              <div class="text-gray-600">Click "Start Game" when all players are ready</div>
             </div>
           {:else}
-            <!-- Round and Turn Indicators -->
-            <div class="flex gap-3 mb-4 flex-wrap">
-              {#if (gameState?.currentRound || 0) > 0}
-                <div class="bg-gray-100 px-4 py-2 rounded-md flex flex-col items-center min-w-[120px]">
-                  <div class="text-xs font-semibold text-gray-600 mb-1">ROUND</div>
-                  <div class="flex gap-1">
+            <!-- Round Indicator -->
+            {#if (gameState?.currentRound || 0) > 0}
+              <div class="flex flex-wrap gap-3 mb-6">
+                <div class="px-4 py-2 bg-amber-50 rounded-lg border-2 border-amber-800/30">
+                  <div class="text-xs text-gray-600 font-semibold mb-1">ROUND</div>
+                  <div class="flex gap-2">
                     {#each [1, 2, 3] as round}
-                      <span class="text-lg font-bold {round === gameState?.currentRound ? 'text-blue-500' : round < (gameState?.currentRound || 0) ? 'text-green-500' : 'text-gray-400'}">
+                      <span class="text-xl font-bold {round === gameState?.currentRound ? 'text-red-600' : round < (gameState?.currentRound || 0) ? 'text-green-500' : 'text-gray-400'}">
                         {round}
                       </span>
                     {/each}
                   </div>
                 </div>
-              {/if}
-              
-              {#if myPlayer?.hasSelected && gameState?.phase === 'selecting'}
-                <div class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md flex items-center flex-1 min-w-[200px] justify-center font-semibold">
-                  ⏳ Waiting for other players...
-                </div>
-              {:else if gameState?.phase === 'selecting' && !myPlayer?.hasSelected}
-                <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-md flex items-center flex-1 min-w-[200px] justify-center font-semibold">
-                  👆 Click a card to play it
-                </div>
-              {/if}
-            </div>
 
-            <!-- Game Canvas -->
-            <GameCanvas 
-              {gameState}
-              onSelectCard={selectCard}
-              {selectedCardIndex}
-              {secondCardIndex}
-            />
+                {#if myPlayer?.hasSelected && gameState?.phase === 'selecting'}
+                  <div class="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg border-2 border-amber-300 font-semibold flex items-center animate-gentle-pulse">
+                    <span class="mr-2">⏳</span>
+                    Waiting for others...
+                  </div>
+                {:else if gameState?.phase === 'selecting'}
+                  <div class="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg border-2 border-blue-300 font-semibold flex items-center">
+                    <span class="mr-2">👆</span>
+                    Click a card to play
+                  </div>
+                {/if}
+              </div>
+            {/if}
 
-            <!-- Stats Bar -->
-            {#if myPlayer?.collection}
-              <div class="mt-5 p-4 bg-gradient-to-br from-primary to-purple-600 rounded-lg grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                {#each [
-                  { emoji: '🍣', label: 'Maki', count: myPlayer.collection.filter(c => c.type === 'maki_roll').reduce((sum, c) => sum + (c.value || 0), 0) },
-                  { emoji: '🍤', label: 'Tempura', count: myPlayer.collection.filter(c => c.type === 'tempura').length },
-                  { emoji: '🐟', label: 'Sashimi', count: myPlayer.collection.filter(c => c.type === 'sashimi').length },
-                  { emoji: '🥟', label: 'Dumpling', count: myPlayer.collection.filter(c => c.type === 'dumpling').length },
-                  { emoji: '🍮', label: 'Pudding', count: myPlayer.puddingCards?.length || 0 },
-                  { emoji: '🟢', label: 'Wasabi', count: 'ACTIVE', special: true },
-                  { emoji: '🥢', label: 'Chopsticks', count: myPlayer.chopsticksCount || 0, special: true, clickable: canUseChopsticks }
-                ] as stat}
-                  {#if stat.clickable}
-                    <button 
-                      class="bg-white p-2 rounded text-center cursor-pointer hover:scale-105 transition-transform"
-                      on:click={toggleChopsticks}
-                    >
-                      <div class="text-xl mb-1">{stat.emoji}</div>
-                      <div class="text-sm font-bold text-gray-800">{stat.count}</div>
-                      <div class="text-xs text-gray-600 uppercase">{stat.label}</div>
-                    </button>
-                  {:else}
-                    <div class="bg-white p-2 rounded text-center">
-                      <div class="text-xl mb-1">{stat.emoji}</div>
-                      <div class="text-sm font-bold text-gray-800">{stat.count}</div>
-                      <div class="text-xs text-gray-600 uppercase">{stat.label}</div>
+            <!-- Hand Cards - Fan Layout -->
+            {#if myHand.length > 0}
+              <div class="relative min-h-[280px] flex items-end justify-center pb-4">
+                {#each myHand as card, index}
+                  {@const isSelected = selectedCardIndex === index || secondCardIndex === index}
+                  {@const rotation = (index - myHand.length / 2) * 4}
+                  {@const translateY = Math.abs(index - myHand.length / 2) * 10}
+                  
+                  <button
+                    on:click={() => selectCard(index)}
+                    disabled={myPlayer?.hasSelected && !isSelected}
+                    class="absolute transform transition-all duration-300 hover:scale-110 hover:-translate-y-8 disabled:opacity-50"
+                    style="
+                      left: {50 + (index - myHand.length / 2) * 12}%;
+                      transform: translateX(-50%) translateY({isSelected ? -40 : translateY}px) rotate({rotation}deg);
+                      z-index: {isSelected ? 100 : index};
+                    "
+                  >
+                    <div class="w-32 h-44 bg-gradient-to-br {getCardColor(card.type)} rounded-xl shadow-card border-4 border-white relative overflow-hidden">
+                      <!-- Card Header -->
+                      <div class="absolute top-0 left-0 right-0 bg-white/90 p-2 text-center">
+                        <div class="text-3xl mb-1">{getCardEmoji(card.type)}</div>
+                        <div class="text-xs font-bold text-gray-800 uppercase">{formatCardType(card.type)}</div>
+                      </div>
+                      
+                      <!-- Card Center Content -->
+                      <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-5xl opacity-20">
+                        {getCardEmoji(card.type)}
+                      </div>
+                      
+                      <!-- Card Footer -->
+                      {#if card.variant || card.value !== undefined}
+                        <div class="absolute bottom-0 left-0 right-0 bg-white/90 p-2 text-center">
+                          <div class="text-xs font-bold text-gray-800">
+                            {card.variant || `${card.value}`}
+                          </div>
+                        </div>
+                      {/if}
+
+                      <!-- Selection Indicator -->
+                      {#if isSelected}
+                        <div class="absolute inset-0 border-4 border-yellow-400 rounded-xl animate-pulse"></div>
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center font-bold text-sm">
+                          ✓
+                        </div>
+                      {/if}
                     </div>
-                  {/if}
+                  </button>
                 {/each}
+              </div>
+            {:else}
+              <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">🍽️</div>
+                <p>No cards in hand</p>
               </div>
             {/if}
           {/if}
         </div>
 
-        <!-- Collection Panel -->
+        <!-- Collection -->
         {#if gameState?.phase !== 'waiting' && myPlayer?.collection}
-          <div class="bg-white rounded-lg shadow-lg p-5">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-gray-200">Your Collection</h2>
-            
-            <!-- Score Display -->
-            <div class="mb-4 p-4 bg-gradient-to-br from-primary to-purple-600 rounded-lg text-white text-center">
-              <div class="text-sm opacity-90 mb-2">TOTAL SCORE</div>
-              <div class="text-4xl font-bold">{myPlayer.score || 0}</div>
-              {#if myPlayer.roundScores && myPlayer.roundScores.length > 0}
-                <div class="text-xs opacity-80 mt-2">
-                  {myPlayer.roundScores.map((score, i) => `R${i + 1}: ${score}pts`).join(' | ')}
-                </div>
-              {/if}
-            </div>
+          <div class="card-base p-6">
+            <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center justify-between">
+              <span class="flex items-center">
+                <span class="text-3xl mr-2">🍱</span>
+                Your Collection
+              </span>
+              <div class="text-4xl font-bold text-red-600">{myPlayer.score || 0}</div>
+            </h2>
 
-            <!-- Collection Cards -->
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 mb-4">
               {#if myPlayer.collection.length === 0}
-                <p class="text-gray-600">No cards collected yet</p>
+                <p class="text-gray-500 w-full text-center py-4">No cards collected yet</p>
               {:else}
                 {#each myPlayer.collection as card}
-                  <span class="bg-gray-200 px-3 py-1 rounded text-sm text-gray-800">
-                    {formatCardType(card.type)}
-                    {#if card.variant} ({card.variant}){/if}
-                    {#if card.type === 'maki_roll'} [{card.value || 0}]{/if}
-                  </span>
+                  <div class="px-3 py-2 bg-gradient-to-br {getCardColor(card.type)} text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-1">
+                    <span>{getCardEmoji(card.type)}</span>
+                    <span>{formatCardType(card.type)}</span>
+                    {#if card.variant}
+                      <span class="text-xs opacity-75">({card.variant})</span>
+                    {/if}
+                    {#if card.type === 'maki_roll'}
+                      <span class="text-xs opacity-75">[{card.value || 0}]</span>
+                    {/if}
+                  </div>
                 {/each}
               {/if}
             </div>
 
-            <!-- Pudding Counter -->
-            <div class="mt-4 p-3 bg-amber-500 rounded-lg text-center font-bold text-gray-800">
-              🍮 Pudding: {myPlayer.puddingCards?.length || 0} 
-              <span class="text-xs opacity-80">(scored at game end)</span>
+            <div class="p-3 bg-amber-100 rounded-lg border-2 border-amber-300 text-center">
+              <span class="text-2xl mr-2">🍮</span>
+              <span class="font-bold text-amber-900">
+                Pudding: {myPlayer.puddingCards?.length || 0}
+              </span>
+              <span class="text-xs text-amber-700 ml-2">(scored at end)</span>
             </div>
           </div>
         {/if}
       </div>
 
-      <!-- Players Panel (Right side) -->
-      <div class="space-y-5">
-        <div class="bg-white rounded-lg shadow-lg p-5">
-          <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-gray-200">Players</h2>
-          
+      <!-- Right: Players List -->
+      <div class="space-y-6">
+        <div class="card-base p-6">
+          <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center">
+            <span class="text-3xl mr-2">👥</span>
+            Players
+          </h2>
+
           {#if gameState?.players}
-            <ul class="space-y-3">
+            <div class="space-y-3">
               {#each gameState.players as player}
-                <li class="bg-gray-100 p-4 rounded-lg border-l-4 border-primary">
-                  <div class="flex justify-between items-center mb-2">
-                    <div class="font-bold text-gray-800">
-                      {player.name}
-                      {#if player.id === gameState.myPlayerId} (You){/if}
-                      {player.hasSelected ? ' ✓' : ' ○'}
+                <div class="p-4 bg-gradient-to-r from-amber-50 to-white rounded-lg border-2 {player.id === gameState.myPlayerId ? 'border-red-600' : 'border-amber-800/20'}">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-2xl">{player.hasSelected ? '✓' : '○'}</span>
+                      <div>
+                        <div class="font-bold text-amber-900">
+                          {player.name}
+                          {#if player.id === gameState.myPlayerId}
+                            <span class="text-xs text-red-600">(You)</span>
+                          {/if}
+                        </div>
+                        <div class="text-xs text-gray-600">
+                          Score: {player.score} | Hand: {player.handSize}
+                        </div>
+                      </div>
                     </div>
                     {#if gameState.phase === 'waiting' && player.id !== gameState.myPlayerId}
                       <button 
                         on:click={() => kickPlayer(player.id)}
-                        class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                        class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
                       >
                         Kick
                       </button>
                     {/if}
                   </div>
-                  <div class="text-sm text-gray-600">
-                    Score: {player.score} | Hand: {player.handSize} cards
-                  </div>
+
                   {#if player.collection && player.collection.length > 0}
                     <div class="flex flex-wrap gap-1 mt-2">
-                      {#each player.collection as card}
-                        <span class="text-xs bg-white px-2 py-1 rounded shadow-sm">
-                          {formatCardType(card.type)}
-                        </span>
+                      {#each player.collection.slice(0, 6) as card}
+                        <span class="text-lg">{getCardEmoji(card.type)}</span>
                       {/each}
+                      {#if player.collection.length > 6}
+                        <span class="text-xs text-gray-500">+{player.collection.length - 6}</span>
+                      {/if}
                     </div>
                   {/if}
-                </li>
+                </div>
               {/each}
-            </ul>
+            </div>
           {/if}
         </div>
       </div>
