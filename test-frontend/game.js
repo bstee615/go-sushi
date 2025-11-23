@@ -627,15 +627,19 @@ function updatePlayersList() {
             });
         }
         
+        // Count pudding cards
+        const puddingCount = player.puddingCards ? player.puddingCards.length : 0;
+        
         li.innerHTML = `
             <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
             <div class="player-stats">
-                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}
+                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}${puddingCount > 0 ? ` | 🍮 Pudding: ${puddingCount}` : ''}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
                     `<span class="collection-card">${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}${card.type === 'maki_roll' ? ` [${card.value || 0}]` : ''}</span>`
                 ).join('') : '<span style="color: #999;">No cards yet</span>'}
+                ${puddingCount > 0 ? `<span class="collection-card" style="background: #ffb74d; color: #333;">🍮 Pudding x${puddingCount}</span>` : ''}
             </div>
         `;
         
@@ -748,6 +752,15 @@ function updateCollection() {
         makiTotal.style.cssText = 'margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 4px; font-weight: bold; color: #1565c0;';
         makiTotal.textContent = `🍣 Total Maki: ${totalMakiValue}`;
         collectionDiv.appendChild(makiTotal);
+    }
+    
+    // Show pudding cards (they persist across rounds)
+    const puddingCards = myPlayer.puddingCards || [];
+    if (puddingCards.length > 0) {
+        const puddingDiv = document.createElement('div');
+        puddingDiv.style.cssText = 'margin-top: 10px; padding: 8px; background: #ffb74d; border-radius: 4px; font-weight: bold; color: #333;';
+        puddingDiv.textContent = `🍮 Pudding Cards: ${puddingCards.length} (scored at game end)`;
+        collectionDiv.appendChild(puddingDiv);
     }
 }
 

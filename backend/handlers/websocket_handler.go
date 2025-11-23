@@ -420,13 +420,15 @@ func (h *WSHandler) buildGameState(game *models.Game, playerID string) map[strin
 		hasSelected := player.SelectedCard != nil
 
 		players[i] = map[string]interface{}{
-			"id":          player.ID,
-			"name":        player.Name,
-			"handSize":    len(player.Hand),
-			"collection":  player.Collection,
-			"score":       player.Score,
-			"hasSelected": hasSelected,
-			"roundScores": player.RoundScores,
+			"id":            player.ID,
+			"name":          player.Name,
+			"handSize":      len(player.Hand),
+			"collection":    player.Collection,
+			"puddingCards":  player.PuddingCards,
+			"score":         player.Score,
+			"hasSelected":   hasSelected,
+			"roundScores":   player.RoundScores,
+			"hasChopsticks": player.HasChopsticks,
 		}
 
 		// Include hand only for the requesting player
