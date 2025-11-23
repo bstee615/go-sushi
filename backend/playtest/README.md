@@ -17,47 +17,56 @@ go build -o playtest.exe ./playtest/cmd
 
 ## Usage
 
-### Running a Single Test
+The playtest runner automatically starts a test server on a random port by default. This ensures isolated, deterministic testing with custom card deals.
+
+### Running Tests
 
 ```bash
+# Run a test by name (looks in ./playtest/tests/)
+.\playtest.exe <test-name>
+
+# Run all tests
+.\playtest.exe all
+
+# Run a specific file
 .\playtest.exe <path-to-test-file.yaml>
-```
 
-Example:
-```bash
-.\playtest.exe .\playtest\tests\two-players-one-turn.yaml
-```
-
-### Running All Tests in a Directory
-
-```bash
+# Run all tests in a directory
 .\playtest.exe <path-to-directory>
 ```
 
-Example:
+Examples:
 ```bash
+# Run by test name (no path or .yaml needed)
+.\playtest.exe two-players-one-turn
+.\playtest.exe simple-custom-deal
+
+# Run all tests
+.\playtest.exe all
+
+# Run specific file
+.\playtest.exe .\playtest\tests\two-players-one-turn.yaml
+
+# Run all tests in directory
 .\playtest.exe .\playtest\tests
 ```
 
 ### Command-Line Options
 
-- `--server <URL>`: WebSocket server URL (default: `ws://localhost:8080/ws`)
-- `--start-server`: Start a test server on a random port (useful for isolated testing)
 - `--verbose`: Print state snapshot after each turn for detailed debugging
+- `--external-server`: Use an external server instead of starting a test server
+- `--server <URL>`: WebSocket server URL when using --external-server (default: `ws://localhost:8080/ws`)
 
 Examples:
 ```bash
-# Use a different server
-.\playtest.exe --server ws://localhost:9000/ws .\playtest\tests\two-players-one-turn.yaml
-
-# Start a test server automatically
-.\playtest.exe --start-server .\playtest\tests\two-players-one-turn.yaml
-
 # Enable verbose output
-.\playtest.exe --verbose .\playtest\tests\two-players-one-turn.yaml
+.\playtest.exe --verbose two-players-one-turn
 
-# Combine options
-.\playtest.exe --start-server --verbose .\playtest\tests\two-players-one-turn.yaml
+# Use an external server (e.g., for debugging against running backend)
+.\playtest.exe --external-server --server ws://localhost:8080/ws two-players-one-turn
+
+# Just use default external server
+.\playtest.exe --external-server two-players-one-turn
 ```
 
 ## Test File Format

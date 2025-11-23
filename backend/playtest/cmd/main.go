@@ -10,23 +10,31 @@ import (
 )
 
 var verbose bool
-var startServer bool
+var useExternalServer bool
 
 func main() {
-	serverURL := flag.String("server", "ws://localhost:8080/ws", "WebSocket server URL")
+	serverURL := flag.String("server", "", "Use external WebSocket server URL (default: start test server)")
 	flag.BoolVar(&verbose, "verbose", false, "Print state snapshot after each turn")
-	flag.BoolVar(&startServer, "start-server", false, "Start a test server on a random port")
+	flag.BoolVar(&useExternalServer, "external-server", false, "Use external server at --server URL instead of starting test server")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Println("Usage: playtest [--server URL] [--verbose] [--start-server] <test-file-or-directory>")
+		fmt.Println("Usage: playtest [--verbose] [--external-server --server URL] <test-name|test-file|directory|all>")
+		fmt.Println("\nExamples:")
+		fmt.Println("  playtest two-players-one-turn    # Run test by name")
+		fmt.Println("  playtest all                     # Run all tests")
+		fmt.Println("  playtest ./tests/my-test.yaml    # Run specific file")
+		fmt.Println("  playtest ./tests                 # Run all tests in directory")
 		os.Exit(1)
 	}
 
-	path := flag.Arg(0)
+	arg := flag.Arg(0)
 	
-	// Start test server if requested
-	if startServer {
+	// Resolve the path from the argument
+	path := resolvePath(arg)
+	
+	// Start test server by default (unless using external server)
+	if !useExternalServer {
 		// Parse the playtest file to get deals if it's a single file
 		var deals map[int]map[string][]string
 		if !isDirectory(path) {
@@ -45,6 +53,11 @@ func main() {
 		
 		*serverURL = testServer.URL
 		fmt.Printf("Started test server on %s\n", testServer.URL)
+	} else {
+		if *serverURL == "" {
+			*serverURL = "ws://localhost:8080/ws"
+		}
+		fmt.Printf("Using external server at %s\n", *serverURL)
 	}
 	
 	// Check if path is a file or directory
@@ -130,4 +143,32 @@ func isDirectory(path string) bool {
 		return false
 	}
 	return info.IsDir()
+}
+
+// resolvePath resolves a test name, file path, directory, or "all" to an actual path
+func resolvePath(arg string) string {
+	// If it's "all", use the default tests directory
+	if arg == "all" {
+		return "./playtest/tests"
+	}
+
+	// If it's an existing file or directory, use it as-is
+	if _, err := os.Stat(arg); err == nil {
+		return arg
+	}
+
+	// Try to resolve as a test name (without .yaml extension)
+	testPath := filepath.Join("./playtest/tests", arg+".yaml")
+	if _, err := os.Stat(testPath); err == nil {
+		return testPath
+	}
+
+	// Try with the path as-is (might have .yaml already)
+	testPath = filepath.Join("./playtest/tests", arg)
+	if _, err := os.Stat(testPath); err == nil {
+		return testPath
+	}
+
+	// Return original argument and let it fail naturally
+	return arg
 }
