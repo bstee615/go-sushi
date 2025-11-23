@@ -333,7 +333,7 @@ func TestScoreNigiri_MultipleVariants(t *testing.T) {
 	}
 
 	score := ScoreNigiri(cards)
-	expected := 3 + 2 + 1 // 6
+	expected := 6 // Squid(3) + Salmon(2) + Egg(1)
 	if score != expected {
 		t.Errorf("Expected %d, got %d", expected, score)
 	}

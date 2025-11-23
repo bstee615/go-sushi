@@ -245,19 +245,33 @@ func TestServerGameFlow(t *testing.T) {
 		Payload: json.RawMessage(`{"gameId":"","playerName":"Alice"}`),
 	}
 
-	data, _ := json.Marshal(createMsg)
-	conn1.WriteMessage(websocket.TextMessage, data)
+	data, err := json.Marshal(createMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal create message: %v", err)
+	}
+	
+	if err := conn1.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("Failed to send create message: %v", err)
+	}
 
 	// Read game state
-	_, response, _ := conn1.ReadMessage()
+	_, response, err := conn1.ReadMessage()
+	if err != nil {
+		t.Fatalf("Failed to read response: %v", err)
+	}
+	
 	var respMsg models.Message
-	json.Unmarshal(response, &respMsg)
+	if err := json.Unmarshal(response, &respMsg); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
 
 	var gameState struct {
 		GameID string `json:"gameId"`
 		Phase  string `json:"phase"`
 	}
-	json.Unmarshal(respMsg.Payload, &gameState)
+	if err := json.Unmarshal(respMsg.Payload, &gameState); err != nil {
+		t.Fatalf("Failed to unmarshal game state: %v", err)
+	}
 	gameID := gameState.GameID
 
 	if gameState.Phase != string(models.PhaseWaitingForPlayers) {
@@ -270,8 +284,14 @@ func TestServerGameFlow(t *testing.T) {
 		Payload: json.RawMessage(fmt.Sprintf(`{"gameId":"%s","playerName":"Bob"}`, gameID)),
 	}
 
-	data, _ = json.Marshal(joinMsg)
-	conn2.WriteMessage(websocket.TextMessage, data)
+	data, err = json.Marshal(joinMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal join message: %v", err)
+	}
+	
+	if err := conn2.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("Failed to send join message: %v", err)
+	}
 
 	// Read responses
 	conn2.ReadMessage() // Player 2's game state
@@ -283,8 +303,14 @@ func TestServerGameFlow(t *testing.T) {
 		Payload: json.RawMessage(fmt.Sprintf(`{"gameId":"%s"}`, gameID)),
 	}
 
-	data, _ = json.Marshal(startMsg)
-	conn1.WriteMessage(websocket.TextMessage, data)
+	data, err = json.Marshal(startMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal start message: %v", err)
+	}
+	
+	if err := conn1.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("Failed to send start message: %v", err)
+	}
 
 	// Read game state updates from both players
 	foundSelectingPhase := false
@@ -332,31 +358,58 @@ func TestServerListGames(t *testing.T) {
 	u := url.URL{Scheme: "ws", Host: fmt.Sprintf("127.0.0.1:%d", server.Port), Path: "/ws"}
 
 	// Connect and create a game
-	conn1, _, _ := websocket.DefaultDialer.Dial(u.String(), nil)
+	conn1, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		t.Fatalf("Failed to connect: %v", err)
+	}
 	defer conn1.Close()
 
 	createMsg := models.Message{
 		Type:    models.MsgTypeJoinGame,
 		Payload: json.RawMessage(`{"gameId":"","playerName":"Alice"}`),
 	}
-	data, _ := json.Marshal(createMsg)
-	conn1.WriteMessage(websocket.TextMessage, data)
-	conn1.ReadMessage() // Read game state
+	data, err := json.Marshal(createMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+	
+	if err := conn1.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("Failed to send message: %v", err)
+	}
+	
+	if _, _, err := conn1.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read game state: %v", err)
+	}
 
 	// Connect second client and list games
-	conn2, _, _ := websocket.DefaultDialer.Dial(u.String(), nil)
+	conn2, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		t.Fatalf("Failed to connect second client: %v", err)
+	}
 	defer conn2.Close()
 
 	listMsg := models.Message{
 		Type:    models.MsgTypeListGames,
 		Payload: json.RawMessage("{}"),
 	}
-	data, _ = json.Marshal(listMsg)
-	conn2.WriteMessage(websocket.TextMessage, data)
+	data, err = json.Marshal(listMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal list message: %v", err)
+	}
+	
+	if err := conn2.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("Failed to send list message: %v", err)
+	}
 
-	_, response, _ := conn2.ReadMessage()
+	_, response, err := conn2.ReadMessage()
+	if err != nil {
+		t.Fatalf("Failed to read response: %v", err)
+	}
+	
 	var respMsg models.Message
-	json.Unmarshal(response, &respMsg)
+	if err := json.Unmarshal(response, &respMsg); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
 
 	if respMsg.Type != models.MsgTypeListGames {
 		t.Errorf("Expected list_games response, got %s", respMsg.Type)
@@ -365,7 +418,9 @@ func TestServerListGames(t *testing.T) {
 	var listPayload struct {
 		Games []map[string]interface{} `json:"games"`
 	}
-	json.Unmarshal(respMsg.Payload, &listPayload)
+	if err := json.Unmarshal(respMsg.Payload, &listPayload); err != nil {
+		t.Fatalf("Failed to unmarshal payload: %v", err)
+	}
 
 	if len(listPayload.Games) == 0 {
 		t.Error("Expected at least one game in list")
