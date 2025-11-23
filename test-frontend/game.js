@@ -421,6 +421,9 @@ function updatePhaseIndicator() {
 function updateHand(animationType = null) {
     handDiv.innerHTML = '';
     
+    // Remove any existing animation classes
+    handDiv.className = '';
+    
     if (!gameState || !myPlayerId) {
         handDiv.innerHTML = '<p style="color: #666;">Join a game to see your hand</p>';
         return;
@@ -506,17 +509,21 @@ function updateHand(animationType = null) {
         handDiv.appendChild(hintDiv);
     }
     
-    // Display actual cards with animation
+    // Create a container for cards
+    const cardsContainer = document.createElement('div');
+    cardsContainer.className = 'hand';
+    
+    // Add animation class to container based on type
+    if (animationType === 'deal') {
+        cardsContainer.classList.add('deal-animation');
+    } else if (animationType === 'turn') {
+        cardsContainer.classList.add('turn-animation');
+    }
+    
+    // Display actual cards
     myHand.forEach((card, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
-        
-        // Add animation class based on type
-        if (animationType === 'deal') {
-            cardEl.classList.add('deal-animation');
-        } else if (animationType === 'turn') {
-            cardEl.classList.add('turn-animation');
-        }
         
         // Grey out non-selected cards if player has already selected
         if (hasSelected) {
@@ -575,15 +582,17 @@ function updateHand(animationType = null) {
             ${card.value ? `<div class="card-variant">Value: ${card.value}</div>` : ''}
         ` + (cardEl.innerHTML || '');
         
-        handDiv.appendChild(cardEl);
-        
-        // Remove animation class after animation completes to allow re-triggering
-        if (animationType) {
-            setTimeout(() => {
-                cardEl.classList.remove('deal-animation', 'turn-animation');
-            }, 500 + (index * 50)); // Match animation duration + delay
-        }
+        cardsContainer.appendChild(cardEl);
     });
+    
+    handDiv.appendChild(cardsContainer);
+    
+    // Remove animation class after animation completes to allow re-triggering
+    if (animationType) {
+        setTimeout(() => {
+            cardsContainer.classList.remove('deal-animation', 'turn-animation');
+        }, 600); // Match animation duration
+    }
 }
 
 function updatePlayersList() {

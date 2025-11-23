@@ -157,58 +157,77 @@
             box-shadow: 0 0 20px rgba(255,215,0,0.5);
         }
         
-        /* Card animations */
-        @keyframes slideInFromTop {
+        /* Card animations - group animations with edge fade */
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @keyframes slideGroupFromTop {
             from {
-                opacity: 0;
-                transform: translateY(-100px);
+                transform: translateY(-100%);
             }
             to {
-                opacity: 1;
                 transform: translateY(0);
             }
         }
         
-        @keyframes slideInFromLeft {
+        @keyframes slideGroupFromLeft {
             from {
-                opacity: 0;
-                transform: translateX(-100px);
+                transform: translateX(-100%);
             }
             to {
-                opacity: 1;
                 transform: translateX(0);
             }
         }
         
-        .card.deal-animation {
-            animation: slideInFromTop 0.5s ease-out forwards;
+        .hand.deal-animation {
+            animation: slideGroupFromTop 0.6s ease-out forwards;
         }
         
-        .card.turn-animation {
-            animation: slideInFromLeft 0.5s ease-out forwards;
+        .hand.turn-animation {
+            animation: slideGroupFromLeft 0.6s ease-out forwards;
         }
         
-        /* Stagger animation delays for multiple cards */
-        .card.deal-animation:nth-child(1) { animation-delay: 0s; }
-        .card.deal-animation:nth-child(2) { animation-delay: 0.05s; }
-        .card.deal-animation:nth-child(3) { animation-delay: 0.1s; }
-        .card.deal-animation:nth-child(4) { animation-delay: 0.15s; }
-        .card.deal-animation:nth-child(5) { animation-delay: 0.2s; }
-        .card.deal-animation:nth-child(6) { animation-delay: 0.25s; }
-        .card.deal-animation:nth-child(7) { animation-delay: 0.3s; }
-        .card.deal-animation:nth-child(8) { animation-delay: 0.35s; }
-        .card.deal-animation:nth-child(9) { animation-delay: 0.4s; }
-        .card.deal-animation:nth-child(10) { animation-delay: 0.45s; }
+        /* Edge fade effect */
+        .hand.deal-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+            pointer-events: none;
+            z-index: 10;
+            animation: fadeOut 0.6s ease-out forwards;
+        }
         
-        .card.turn-animation:nth-child(1) { animation-delay: 0s; }
-        .card.turn-animation:nth-child(2) { animation-delay: 0.05s; }
-        .card.turn-animation:nth-child(3) { animation-delay: 0.1s; }
-        .card.turn-animation:nth-child(4) { animation-delay: 0.15s; }
-        .card.turn-animation:nth-child(5) { animation-delay: 0.2s; }
-        .card.turn-animation:nth-child(6) { animation-delay: 0.25s; }
-        .card.turn-animation:nth-child(7) { animation-delay: 0.3s; }
-        .card.turn-animation:nth-child(8) { animation-delay: 0.35s; }
-        .card.turn-animation:nth-child(9) { animation-delay: 0.4s; }
+        .hand.turn-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 50px;
+            background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0));
+            pointer-events: none;
+            z-index: 10;
+            animation: fadeOut 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
         
         .card-type {
             font-weight: 700;
