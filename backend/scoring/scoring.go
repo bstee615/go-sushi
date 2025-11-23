@@ -11,3 +11,25 @@ type ScoringSystem interface {
 	ScoreNigiri(cards []models.Card, wasabiCards []models.Card) int
 	ScorePudding(players []*models.Player, playerCount int) map[string]int
 }
+
+// ScoreNigiri calculates the score for Nigiri cards
+// Base scoring: Squid=3, Salmon=2, Egg=1
+// Wasabi cards are handled separately (not in this base implementation)
+func ScoreNigiri(cards []models.Card) int {
+	score := 0
+	for _, card := range cards {
+		if card.Type != models.CardTypeNigiri {
+			continue
+		}
+		
+		switch card.Variant {
+		case "Squid":
+			score += 3
+		case "Salmon":
+			score += 2
+		case "Egg":
+			score += 1
+		}
+	}
+	return score
+}

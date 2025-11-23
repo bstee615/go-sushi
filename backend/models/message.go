@@ -24,7 +24,7 @@ type Message struct {
 
 // SelectCardPayload represents the payload for card selection
 type SelectCardPayload struct {
-	CardIndex       int  `json:"card_index"`
-	UseChopsticks   bool `json:"use_chopsticks"`
-	SecondCardIndex *int `json:"second_card_index,omitempty"`
+	CardIndex       int  `json:"cardIndex"`
+	UseChopsticks   bool `json:"useChopsticks"`
+	SecondCardIndex *int `json:"secondCardIndex,omitempty"`
 }

@@ -15,14 +15,15 @@ type GameEngine interface {
 
 // GameResult represents the final result of a game
 type GameResult struct {
-	Winner   string
-	Rankings []PlayerRanking
+	Winner   string          `json:"winner"`
+	Rankings []PlayerRanking `json:"rankings"`
 }
 
 // PlayerRanking represents a player's final ranking
 type PlayerRanking struct {
-	PlayerID     string
-	PlayerName   string
-	FinalScore   int
-	PuddingCount int
+	PlayerID     string `json:"playerId"`
+	PlayerName   string `json:"playerName"`
+	FinalScore   int    `json:"finalScore"`
+	PuddingCount int    `json:"puddingCount"`
+	Rank         int    `json:"rank"`
 }
