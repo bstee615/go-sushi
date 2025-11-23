@@ -22,16 +22,20 @@ var (
 
 // Engine is the concrete implementation of GameEngine
 type Engine struct {
-	games  map[string]*models.Game
-	dealer CardDealer
-	mu     sync.RWMutex
+	games        map[string]*models.Game
+	dealer       CardDealer
+	mu           sync.RWMutex
+	numRounds    int
+	cardsPerHand int
 }
 
 // NewEngine creates a new game engine with default dealer
 func NewEngine() *Engine {
 	return &Engine{
-		games:  make(map[string]*models.Game),
-		dealer: &DefaultDealer{},
+		games:        make(map[string]*models.Game),
+		dealer:       &DefaultDealer{},
+		numRounds:    3,
+		cardsPerHand: 10,
 	}
 }
 
@@ -41,8 +45,29 @@ func NewEngineWithDealer(dealer CardDealer) *Engine {
 		dealer = &DefaultDealer{}
 	}
 	return &Engine{
-		games:  make(map[string]*models.Game),
-		dealer: dealer,
+		games:        make(map[string]*models.Game),
+		dealer:       dealer,
+		numRounds:    3,
+		cardsPerHand: 10,
+	}
+}
+
+// NewEngineWithConfig creates a new game engine with custom configuration
+func NewEngineWithConfig(dealer CardDealer, numRounds, cardsPerHand int) *Engine {
+	if dealer == nil {
+		dealer = &DefaultDealer{}
+	}
+	if numRounds <= 0 {
+		numRounds = 3
+	}
+	if cardsPerHand <= 0 {
+		cardsPerHand = 10
+	}
+	return &Engine{
+		games:        make(map[string]*models.Game),
+		dealer:       dealer,
+		numRounds:    numRounds,
+		cardsPerHand: cardsPerHand,
 	}
 }
 
@@ -75,7 +100,7 @@ func (e *Engine) CreateGame(playerIDs []string) (*models.Game, error) {
 		players = append(players, player)
 	}
 
-	// Create the game
+	// Create the game with engine configuration
 	game := &models.Game{
 		ID:           gameID,
 		Players:      players,
@@ -83,6 +108,8 @@ func (e *Engine) CreateGame(playerIDs []string) (*models.Game, error) {
 		CurrentRound: 0,
 		RoundPhase:   models.PhaseWaitingForPlayers,
 		CreatedAt:    time.Now(),
+		NumRounds:    e.numRounds,
+		CardsPerHand: e.cardsPerHand,
 	}
 
 	e.games[gameID] = game
@@ -256,7 +283,7 @@ func (e *Engine) StartRound(gameID string) error {
 	}
 
 	// Use the dealer to deal cards
-	err := e.dealer.DealCards(game.Players, game.CurrentRound)
+	err := e.dealer.DealCards(game.Players, game.CurrentRound, game.CardsPerHand)
 	if err != nil {
 		return err
 	}
@@ -499,7 +526,7 @@ func (e *Engine) ScoreRound(gameID string) error {
 	game.RoundPhase = models.PhaseRoundEnd
 
 	// Check if this was the final round
-	if game.CurrentRound >= 3 {
+	if game.CurrentRound >= game.NumRounds {
 		// Game is over, trigger final scoring
 		game.RoundPhase = models.PhaseGameEnd
 		return nil

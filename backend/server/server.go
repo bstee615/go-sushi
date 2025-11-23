@@ -9,10 +9,18 @@ import (
 	"github.com/sushi-go-game/backend/handlers"
 )
 
+// GameConfig configures game parameters
+type GameConfig struct {
+	NumRounds    int
+	CardsPerHand int
+}
+
 // ServerOptions configures the server
 type ServerOptions struct {
 	// CustomDealer allows specifying custom card deals for testing
 	CustomDealer engine.CardDealer
+	// GameConfig specifies game parameters
+	GameConfig *GameConfig
 }
 
 // Server represents a game server instance
@@ -39,13 +47,22 @@ func NewServer(addr string, options *ServerOptions) (*Server, error) {
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
-	
-	// Initialize game engine with custom dealer if provided
-	gameEngine := engine.NewEngineWithDealer(options.CustomDealer)
-	
+
+	// Initialize game engine with custom dealer and config if provided
+	var gameEngine *engine.Engine
+	if options.GameConfig != nil {
+		gameEngine = engine.NewEngineWithConfig(
+			options.CustomDealer,
+			options.GameConfig.NumRounds,
+			options.GameConfig.CardsPerHand,
+		)
+	} else {
+		gameEngine = engine.NewEngineWithDealer(options.CustomDealer)
+	}
+
 	// Initialize WebSocket handler
 	wsHandler := handlers.NewWSHandler(gameEngine)
-	
+
 	// Set up routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

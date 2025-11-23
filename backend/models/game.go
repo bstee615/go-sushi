@@ -58,6 +58,8 @@ type Game struct {
 	CurrentRound int        `json:"current_round"`
 	RoundPhase   RoundPhase `json:"round_phase"`
 	CreatedAt    time.Time  `json:"created_at"`
+	NumRounds    int        `json:"num_rounds"`     // Number of rounds (default: 3)
+	CardsPerHand int        `json:"cards_per_hand"` // Cards dealt per hand (default: 10)
 }
 
 // GameState represents the state visible to clients

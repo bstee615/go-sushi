@@ -120,7 +120,7 @@ func InitializeDeck() []models.Card {
 func ShuffleDeck(deck []models.Card) []models.Card {
 	// Create a new random source with current time as seed
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	
+
 	// Create a copy to avoid modifying the original
 	shuffled := make([]models.Card, len(deck))
 	copy(shuffled, deck)
@@ -159,6 +159,30 @@ func DealCards(deck []models.Card, players []*models.Player) ([]*models.Player, 
 		return nil, nil, err
 	}
 
+	totalCardsNeeded := cardsPerPlayer * playerCount
+	if len(deck) < totalCardsNeeded {
+		return nil, nil, fmt.Errorf("not enough cards in deck: need %d, have %d", totalCardsNeeded, len(deck))
+	}
+
+	// Deal cards to each player
+	cardIndex := 0
+	for _, player := range players {
+		player.Hand = make([]models.Card, cardsPerPlayer)
+		for i := 0; i < cardsPerPlayer; i++ {
+			player.Hand[i] = deck[cardIndex]
+			cardIndex++
+		}
+	}
+
+	// Return remaining deck
+	remainingDeck := deck[cardIndex:]
+	return players, remainingDeck, nil
+}
+
+// DealCardsCustom deals a specific number of cards to each player
+// Returns the updated players with cards in their hands and the remaining deck
+func DealCardsCustom(deck []models.Card, players []*models.Player, cardsPerPlayer int) ([]*models.Player, []models.Card, error) {
+	playerCount := len(players)
 	totalCardsNeeded := cardsPerPlayer * playerCount
 	if len(deck) < totalCardsNeeded {
 		return nil, nil, fmt.Errorf("not enough cards in deck: need %d, have %d", totalCardsNeeded, len(deck))
