@@ -129,6 +129,13 @@
             border-bottom: 2px solid #eee;
         }
         
+        /* Hand container wrapper for proper overflow handling */
+        #hand {
+            position: relative;
+            overflow: hidden;
+            padding: 10px 0;
+        }
+        
         .hand {
             display: flex;
             flex-wrap: wrap;
@@ -163,6 +170,7 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 15px;
+            padding: 10px 0;
             position: relative;
             overflow: hidden;
         }
