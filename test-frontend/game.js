@@ -128,6 +128,9 @@ function handleMessage(data) {
 }
 
 function handleGameState(payload) {
+    // NOTE: Backend sends snake_case field names (pudding_cards, has_chopsticks, etc.)
+    // Frontend must use snake_case when accessing these fields from the payload
+    
     const previousHand = gameState?.myHand;
     const newHand = payload.myHand;
     const previousSelected = gameState?.players?.find(p => p.id === myPlayerId)?.hasSelected;
@@ -439,9 +442,9 @@ function updateHand(animationType = null) {
     
     // Check if player has chopsticks and if they've already selected
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
-    // Check both collection (for played chopsticks) and hasChopsticks flag (backend tracks availability)
+    // NOTE: Backend sends has_chopsticks (snake_case), not hasChopsticks
     const hasChopsticksInCollection = myPlayer?.collection?.some(card => card.type === 'chopsticks');
-    const canUseChopsticks = myPlayer?.hasChopsticks !== undefined ? myPlayer.hasChopsticks : hasChopsticksInCollection;
+    const canUseChopsticks = myPlayer?.has_chopsticks !== undefined ? myPlayer.has_chopsticks : hasChopsticksInCollection;
     const hasSelected = myPlayer?.hasSelected;
     
     // If player has already selected, show waiting indicator separately
@@ -527,10 +530,35 @@ function updateHand(animationType = null) {
         cardsContainer.classList.add('turn-animation');
     }
     
+    // Count cards in collection for set completion indicators
+    const collectionCounts = {};
+    let hasUnusedWasabi = false;
+    
+    if (myPlayer && myPlayer.collection) {
+        let wasabiCount = 0;
+        myPlayer.collection.forEach(collCard => {
+            collectionCounts[collCard.type] = (collectionCounts[collCard.type] || 0) + 1;
+            if (collCard.type === 'wasabi') wasabiCount++;
+            if (collCard.type === 'nigiri') wasabiCount--;
+        });
+        hasUnusedWasabi = wasabiCount > 0;
+    }
+    
     // Display actual cards
     myHand.forEach((card, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
+        cardEl.style.position = 'relative';
+        
+        // Determine if this card will complete a set or get a bonus
+        let badge = null;
+        if (card.type === 'tempura' && (collectionCounts['tempura'] || 0) % 2 === 1) {
+            badge = { text: '✓5pts!', color: '#ffd700' };
+        } else if (card.type === 'sashimi' && (collectionCounts['sashimi'] || 0) % 3 === 2) {
+            badge = { text: '✓10pts!', color: '#ffd700' };
+        } else if (card.type === 'nigiri' && hasUnusedWasabi) {
+            badge = { text: '3x!', color: '#4caf50' };
+        }
         
         // Grey out non-selected cards if player has already selected
         if (hasSelected) {
@@ -588,6 +616,26 @@ function updateHand(animationType = null) {
             ${card.variant ? `<div class="card-variant">${card.variant}</div>` : ''}
             ${card.value ? `<div class="card-variant">Value: ${card.value}</div>` : ''}
         ` + (cardEl.innerHTML || '');
+        
+        // Add badge if applicable
+        if (badge) {
+            const badgeEl = document.createElement('div');
+            badgeEl.style.cssText = `
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                background: ${badge.color};
+                color: #333;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: bold;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                z-index: 10;
+            `;
+            badgeEl.textContent = badge.text;
+            cardEl.appendChild(badgeEl);
+        }
         
         cardsContainer.appendChild(cardEl);
     });
@@ -686,6 +734,7 @@ function updateCollection() {
         
         let cardText = `${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}`;
         let isSetComplete = false;
+        let wasabiUsed = false;
         
         // Check for set completion
         if (card.type === 'tempura') {
@@ -724,8 +773,7 @@ function updateCollection() {
             
             if (hasNigiriAfter) {
                 // Wasabi has been used - show as green
-                cardEl.style.background = '#4caf50';
-                cardEl.style.color = 'white';
+                wasabiUsed = true;
             }
         }
         
@@ -735,14 +783,20 @@ function updateCollection() {
             availableWasabiCount--; // Mark this wasabi as used
         }
         
-        // Highlight completed sets
-        if (isSetComplete) {
+        // Set text content first
+        cardEl.textContent = cardText;
+        
+        // Apply styling after text (priority: wasabi > completed sets)
+        if (wasabiUsed) {
+            cardEl.style.background = '#4caf50';
+            cardEl.style.color = 'white';
+            cardEl.style.fontWeight = 'bold';
+        } else if (isSetComplete) {
             cardEl.style.background = '#ffd700';
             cardEl.style.color = '#333';
             cardEl.style.fontWeight = 'bold';
         }
         
-        cardEl.textContent = cardText;
         collectionDiv.appendChild(cardEl);
     });
     
@@ -755,7 +809,9 @@ function updateCollection() {
     }
     
     // Show pudding cards (they persist across rounds)
+    // NOTE: Backend sends puddingCards (camelCase)
     const puddingCards = myPlayer.puddingCards || [];
+    
     if (puddingCards.length > 0) {
         const puddingDiv = document.createElement('div');
         puddingDiv.style.cssText = 'margin-top: 10px; padding: 8px; background: #ffb74d; border-radius: 4px; font-weight: bold; color: #333;';
