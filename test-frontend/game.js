@@ -173,6 +173,7 @@ function handleMessage(data) {
                 log(`Round ended: ${JSON.stringify(message.payload)}`, 'received');
                 break;
             case 'game_end':
+                handleGameEnd(message.payload);
                 log(`Game ended: ${JSON.stringify(message.payload)}`, 'received');
                 break;
             case 'list_games':
@@ -350,6 +351,79 @@ function handleRoundEnd(payload) {
             overlay.remove();
         }, 500);
     }, 3000);
+}
+
+// Handle game end message
+function handleGameEnd(payload) {
+    // Hide hand and collection panels
+    const handContent = document.getElementById('handContent');
+    const collectionPanel = document.getElementById('collectionPanel');
+    if (handContent) handContent.style.display = 'none';
+    if (collectionPanel) collectionPanel.style.display = 'none';
+    
+    // Show final scores in the hand panel
+    const handPanel = document.getElementById('handPanel');
+    if (!handPanel) return;
+    
+    // Sort players by score (descending)
+    const sortedPlayers = [...(gameState?.players || [])].sort((a, b) => b.score - a.score);
+    
+    const finalScoresHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 20px;">🎉</div>
+            <div style="font-size: 32px; font-weight: bold; color: #333; margin-bottom: 30px;">Game Over!</div>
+            
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h3 style="color: #333; margin-bottom: 20px;">Final Scores</h3>
+                ${sortedPlayers.map((player, index) => {
+                    const isWinner = index === 0;
+                    const isMe = player.id === myPlayerId;
+                    return `
+                        <div style="
+                            background: ${isWinner ? 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)' : '#f8f9fa'};
+                            padding: 15px;
+                            margin-bottom: 10px;
+                            border-radius: 8px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            ${isWinner ? 'border: 3px solid #ffa500;' : ''}
+                        ">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px; font-weight: bold; color: #666;">#${index + 1}</span>
+                                <span style="font-size: 18px; font-weight: ${isWinner ? 'bold' : '600'}; color: #333;">
+                                    ${player.name}${isMe ? ' (You)' : ''}
+                                    ${isWinner ? ' 👑' : ''}
+                                </span>
+                            </div>
+                            <span style="font-size: 24px; font-weight: bold; color: #333;">${player.score}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <button onclick="location.reload()" style="
+                padding: 15px 40px;
+                font-size: 18px;
+                font-weight: bold;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+            " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">
+                🔄 Play Again
+            </button>
+        </div>
+    `;
+    
+    // Replace hand panel content with final scores
+    const waitingMessage = document.getElementById('waitingMessage');
+    if (waitingMessage) {
+        waitingMessage.innerHTML = finalScoresHTML;
+        waitingMessage.style.display = 'block';
+    }
 }
 
 // Helper function to show slide-out animation before updating to new cards
