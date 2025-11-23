@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/sushi-go-game/backend/models"
+	"github.com/sushi-go-game/backend/scoring"
 )
 
 var (
-	ErrGameNotFound      = errors.New("game not found")
-	ErrGameFull          = errors.New("game is full (max 5 players)")
-	ErrNotEnoughPlayers  = errors.New("not enough players to start (minimum 2)")
-	ErrTooManyPlayers    = errors.New("too many players (maximum 5)")
+	ErrGameNotFound        = errors.New("game not found")
+	ErrGameFull            = errors.New("game is full (max 5 players)")
+	ErrNotEnoughPlayers    = errors.New("not enough players to start (minimum 2)")
+	ErrTooManyPlayers      = errors.New("too many players (maximum 5)")
 	ErrPlayerAlreadyJoined = errors.New("player already in game")
 )
 
@@ -274,7 +275,7 @@ func (e *Engine) RevealCards(gameID string) error {
 			cardIndex := *player.SelectedCard
 			if cardIndex >= 0 && cardIndex < len(player.Hand) {
 				selectedCard := player.Hand[cardIndex]
-				
+
 				// Add to appropriate collection
 				if selectedCard.Type == models.CardTypePudding {
 					player.PuddingCards = append(player.PuddingCards, selectedCard)
@@ -382,9 +383,13 @@ func (e *Engine) ScoreRound(gameID string) error {
 		return errors.New("game is not in scoring phase")
 	}
 
-	// TODO: Calculate scores for this round (will be implemented in scoring tasks)
-	// For now, we just track that the round is complete
-	
+	// Calculate scores for this round
+	for _, player := range game.Players {
+		roundScore := scorePlayerRound(player, game.Players)
+		player.Score += roundScore
+		player.RoundScores = append(player.RoundScores, roundScore)
+	}
+
 	// Mark round as ended
 	game.RoundPhase = models.PhaseRoundEnd
 
@@ -473,7 +478,7 @@ func (e *Engine) EndGame(gameID string) (*GameResult, error) {
 // Returns a map of player ID to Pudding score (can be positive or negative)
 func calculatePuddingScores(players []*models.Player) map[string]int {
 	scores := make(map[string]int)
-	
+
 	// Special case: 2-player games have no penalty for fewest Pudding
 	if len(players) == 2 {
 		// Find player with most Pudding
@@ -497,7 +502,7 @@ func calculatePuddingScores(players []*models.Player) map[string]int {
 	// For 3+ players: find most and fewest Pudding counts
 	maxPudding := -1
 	minPudding := 1000000 // Large number
-	
+
 	for _, player := range players {
 		puddingCount := len(player.PuddingCards)
 		if puddingCount > maxPudding {
@@ -548,4 +553,9 @@ func sortRankings(rankings []PlayerRanking) {
 			}
 		}
 	}
+}
+
+// scorePlayerRound calculates the total score for a player's collection in a round
+func scorePlayerRound(player *models.Player, allPlayers []*models.Player) int {
+	return scoring.ScorePlayerRound(player, allPlayers)
 }
