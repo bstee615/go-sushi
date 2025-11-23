@@ -493,11 +493,20 @@ function updateHand(animationType = null) {
         controlsDiv.appendChild(statusDiv);
         
         handDiv.appendChild(controlsDiv);
-    } else if (gameState.phase === 'selecting') {
-        // Show hint for normal mode
+    } else if (gameState.phase === 'selecting' && !hasSelected) {
+        // Show hint for normal mode (only if no card selected yet)
         const hintDiv = document.createElement('div');
-        hintDiv.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; text-align: center;';
-        hintDiv.textContent = '👆 Click a card to play it';
+        hintDiv.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; text-align: center; position: relative; z-index: 1;';
+        
+        // Check if any card is selected (for non-chopsticks mode)
+        if (selectedCardIndex !== null && !chopsticksMode) {
+            hintDiv.textContent = '👆 Click selected card to withdraw';
+            hintDiv.style.background = '#fff3cd';
+            hintDiv.style.color = '#856404';
+        } else {
+            hintDiv.textContent = '👆 Click a card to play it';
+        }
+        
         handDiv.appendChild(hintDiv);
     }
     

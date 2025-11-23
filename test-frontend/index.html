@@ -132,8 +132,13 @@
         /* Hand container wrapper for proper overflow handling */
         #hand {
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             padding: 10px 0;
+        }
+        
+        #hand > div:first-child {
+            position: relative;
+            z-index: 2;
         }
         
         .hand {
@@ -173,6 +178,7 @@
             padding: 10px 0;
             position: relative;
             overflow: hidden;
+            z-index: 0;
         }
         
         @keyframes slideGroupFromTop {
