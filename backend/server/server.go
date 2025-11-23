@@ -73,9 +73,14 @@ func NewServer(addr string, options *ServerOptions) (*Server, error) {
 
 	// Serve static files from frontend directory
 	// Try multiple paths for different environments (local dev vs Docker)
-	frontendPath := "./test-frontend"
+	frontendPath := "../frontend/dist"
 	if _, err := http.Dir(frontendPath).Open("index.html"); err != nil {
-		frontendPath = "../test-frontend"
+		// Try Docker path
+		frontendPath = "./frontend"
+		if _, err := http.Dir(frontendPath).Open("index.html"); err != nil {
+			// Fallback to test-frontend for backward compatibility
+			frontendPath = "./test-frontend"
+		}
 	}
 	fs := http.FileServer(http.Dir(frontendPath))
 	mux.Handle("/", fs)
