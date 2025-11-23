@@ -514,17 +514,20 @@ button:disabled {
 .instructions-btn {
     display: inline-flex;
     align-items: center;
-    padding: 8px 15px;
-    background: #4CAF50;
+    padding: 10px 15px;
+    background: #667eea;
     color: white;
     text-decoration: none;
     border-radius: 5px;
-    font-weight: bold;
+    font-weight: 600;
     transition: background 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
 }
 
 .instructions-btn:hover {
-    background: #45a049;
+    background: #5568d3;
 }
 
 /* Header actions container */
