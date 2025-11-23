@@ -649,6 +649,78 @@ function updateHand(animationType = null) {
     cardsWrapper.appendChild(cardsContainer);
     handDiv.appendChild(cardsWrapper);
     
+    // Add stats bar showing card counts
+    if (myPlayer && myPlayer.collection) {
+        const statsBar = document.createElement('div');
+        statsBar.style.cssText = 'margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;';
+        
+        // Count cards and check for active wasabi
+        let makiCount = 0;
+        let tempuraCount = 0;
+        let sashimiCount = 0;
+        let dumplingCount = 0;
+        let wasabiCount = 0;
+        let nigiriCount = 0;
+        
+        myPlayer.collection.forEach(card => {
+            if (card.type === 'maki_roll') makiCount += card.value || 0;
+            if (card.type === 'tempura') tempuraCount++;
+            if (card.type === 'sashimi') sashimiCount++;
+            if (card.type === 'dumpling') dumplingCount++;
+            if (card.type === 'wasabi') wasabiCount++;
+            if (card.type === 'nigiri') nigiriCount++;
+        });
+        
+        const puddingCount = myPlayer.puddingCards ? myPlayer.puddingCards.length : 0;
+        
+        // Check if wasabi is active (more wasabi than nigiri means unused wasabi)
+        const hasActiveWasabi = wasabiCount > nigiriCount;
+        const wasabiStatus = hasActiveWasabi ? 'ACTIVE' : (wasabiCount > 0 ? 'USED' : 'NONE');
+        
+        // Create stat items
+        const stats = [
+            { emoji: '🍣', label: 'Maki', count: makiCount, color: '#e3f2fd' },
+            { emoji: '🍤', label: 'Tempura', count: tempuraCount, color: '#fff3e0' },
+            { emoji: '🐟', label: 'Sashimi', count: sashimiCount, color: '#fce4ec' },
+            { emoji: '🥟', label: 'Dumpling', count: dumplingCount, color: '#f3e5f5' },
+            { emoji: '🍮', label: 'Pudding', count: puddingCount, color: '#ffb74d' },
+            { emoji: '🟢', label: 'Wasabi', count: wasabiStatus, color: hasActiveWasabi ? '#4caf50' : '#e0e0e0', isWasabi: true }
+        ];
+        
+        stats.forEach(stat => {
+            const statItem = document.createElement('div');
+            const bgColor = stat.isWasabi ? stat.color : 'white';
+            const textColor = stat.isWasabi && hasActiveWasabi ? 'white' : '#333';
+            
+            statItem.style.cssText = `
+                background: ${bgColor};
+                padding: 10px 15px;
+                border-radius: 6px;
+                text-align: center;
+                min-width: 80px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                ${stat.isWasabi && hasActiveWasabi ? 'animation: pulse 2s infinite;' : ''}
+            `;
+            
+            if (stat.isWasabi) {
+                statItem.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 5px;">${hasActiveWasabi ? '🟢' : '⚪'}</div>
+                    <div style="font-size: 14px; font-weight: bold; color: ${textColor}; margin-bottom: 2px;">${stat.count}</div>
+                    <div style="font-size: 11px; color: ${hasActiveWasabi ? 'white' : '#666'}; text-transform: uppercase;">${stat.label}</div>
+                `;
+            } else {
+                statItem.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 5px;">${stat.emoji}</div>
+                    <div style="font-size: 20px; font-weight: bold; color: ${textColor}; margin-bottom: 2px;">${stat.count}</div>
+                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">${stat.label}</div>
+                `;
+            }
+            statsBar.appendChild(statItem);
+        });
+        
+        handDiv.appendChild(statsBar);
+    }
+    
     // Remove animation class after animation completes to allow re-triggering
     if (animationType) {
         isAnimating = true;
