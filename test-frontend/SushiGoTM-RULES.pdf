@@ -1,0 +1,115 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+/F2 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica-Bold
+>>
+>>
+>>
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 650
+>>
+stream
+BT
+/F2 24 Tf
+50 700 Td
+(Sushi Go! Rules) Tj
+ET
+
+BT
+/F1 12 Tf
+50 650 Td
+(This is a placeholder PDF file.) Tj
+ET
+
+BT
+/F1 12 Tf
+50 620 Td
+(Please download the official Sushi Go! rules from:) Tj
+ET
+
+BT
+/F1 10 Tf
+50 590 Td
+(https://aadl.org/files/catalog_guides/SushiGoTM-RULES.pdf) Tj
+ET
+
+BT
+/F2 12 Tf
+50 550 Td
+(Alternative sources:) Tj
+ET
+
+BT
+/F1 10 Tf
+50 530 Td
+(https://fgbradleys.com/wp-content/uploads/rules/SushiGo-rules.pdf) Tj
+ET
+
+BT
+/F1 10 Tf
+50 510 Td
+(https://cdn.1j1ju.com/medias/e5/92/74-sushi-go-rulebook.pdf) Tj
+ET
+
+BT
+/F1 12 Tf
+50 470 Td
+(Save the downloaded file as 'SushiGoTM-RULES.pdf' in the test-frontend) Tj
+ET
+
+BT
+/F1 12 Tf
+50 450 Td
+(directory to enable direct access from the game interface.) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000364 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+1066
+%%EOF
