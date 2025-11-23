@@ -445,19 +445,9 @@ function updateHand(animationType = null) {
     // If player has already selected, show waiting indicator separately
     if (hasSelected && gameState.phase === 'selecting') {
         const waitingDiv = document.createElement('div');
-        waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; cursor: pointer; transition: background 0.2s;';
-        waitingDiv.onmouseover = () => {
-            waitingDiv.style.background = '#ffe69c';
-        };
-        waitingDiv.onmouseout = () => {
-            waitingDiv.style.background = '#fff3cd';
-        };
-        waitingDiv.onclick = () => {
-            withdrawCard();
-        };
+        waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;';
         waitingDiv.innerHTML = `
             <div style="font-size: 16px; font-weight: bold;">⏳ Waiting for other players...</div>
-            <div style="font-size: 12px; margin-top: 4px; opacity: 0.8;">Click here to withdraw your selection</div>
         `;
         
         handDiv.appendChild(waitingDiv);
