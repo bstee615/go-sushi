@@ -112,6 +112,7 @@ function handleMessage(data) {
                 log(`Cards revealed: ${JSON.stringify(message.payload)}`, 'received');
                 break;
             case 'round_end':
+                handleRoundEnd(message.payload);
                 log(`Round ended: ${JSON.stringify(message.payload)}`, 'received');
                 break;
             case 'game_end':
@@ -241,6 +242,36 @@ function continueStateUpdate(payload, animationType) {
     } else {
         startBtn.disabled = true;
     }
+}
+
+// Handle round end message
+function handleRoundEnd(payload) {
+    const round = payload.round || gameState?.currentRound || 0;
+    
+    // Create round end overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'round-end-overlay';
+    overlay.innerHTML = `
+        <div class="round-end-content">
+            <div class="round-end-title">🍣 Round ${round} Completed! 🍣</div>
+            <div class="round-end-subtitle">Cooking up the next round...</div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Fade in
+    setTimeout(() => {
+        overlay.classList.add('visible');
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        overlay.classList.remove('visible');
+        setTimeout(() => {
+            overlay.remove();
+        }, 500);
+    }, 3000);
 }
 
 // Helper function to show slide-out animation before updating to new cards

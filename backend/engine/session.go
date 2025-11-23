@@ -366,31 +366,17 @@ func (e *Engine) PassHands(gameID string) error {
 		}
 	}
 
-	// Check if round is over (all hands are empty or have only 1 card left)
+	// Check if round is over (all hands are empty)
 	roundOver := true
 	for _, player := range game.Players {
-		if len(player.Hand) > 1 {
+		if len(player.Hand) > 0 {
 			roundOver = false
 			break
 		}
 	}
 
 	if roundOver {
-		// Play the last card if there is one
-		for _, player := range game.Players {
-			if len(player.Hand) == 1 {
-				lastCard := player.Hand[0]
-				if lastCard.Type == models.CardTypePudding {
-					player.PuddingCards = append(player.PuddingCards, lastCard)
-				} else {
-					player.Collection = append(player.Collection, lastCard)
-				}
-				if lastCard.Type == models.CardTypeChopsticks {
-					player.HasChopsticks = true
-				}
-				player.Hand = []models.Card{}
-			}
-		}
+		// All hands are empty, round is over
 		game.RoundPhase = models.PhaseScoring
 		return nil
 	}
