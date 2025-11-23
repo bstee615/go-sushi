@@ -750,44 +750,43 @@ function updatePlayersList() {
         let dumplingCount = 0;
         let tempuraCount = 0;
         let sashimiCount = 0;
+        let wasabiCount = 0;
+        let nigiriCount = 0;
+        
         if (player.collection) {
             player.collection.forEach(card => {
-                if (card.type === 'maki_roll') {
-                    makiCount += card.value || 0;
-                }
-                if (card.type === 'dumpling') {
-                    dumplingCount++;
-                }
-                if (card.type === 'tempura') {
-                    tempuraCount++;
-                }
-                if (card.type === 'sashimi') {
-                    sashimiCount++;
-                }
+                if (card.type === 'maki_roll') makiCount += card.value || 0;
+                if (card.type === 'dumpling') dumplingCount++;
+                if (card.type === 'tempura') tempuraCount++;
+                if (card.type === 'sashimi') sashimiCount++;
+                if (card.type === 'wasabi') wasabiCount++;
+                if (card.type === 'nigiri') nigiriCount++;
             });
         }
         
         // Count pudding cards
         const puddingCount = player.puddingCards ? player.puddingCards.length : 0;
         
-        // Build stats string with all relevant indicators
-        let statsStr = `Score: ${player.score} | Hand: ${player.handSize} cards`;
-        if (makiCount > 0) statsStr += ` | 🍣 Maki: ${makiCount}`;
-        if (tempuraCount > 0) statsStr += ` | 🍤 Tempura: ${tempuraCount}`;
-        if (sashimiCount > 0) statsStr += ` | 🐟 Sashimi: ${sashimiCount}`;
-        if (dumplingCount > 0) statsStr += ` | 🥟 Dumpling: ${dumplingCount}`;
-        if (puddingCount > 0) statsStr += ` | 🍮 Pudding: ${puddingCount}`;
+        // Check if wasabi is active
+        const hasActiveWasabi = wasabiCount > nigiriCount;
         
         li.innerHTML = `
             <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
             <div class="player-stats">
-                ${statsStr}
+                Score: ${player.score} | Hand: ${player.handSize} cards
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap;">
+                ${makiCount > 0 ? `<span class="mini-stat">🍣 ${makiCount}</span>` : ''}
+                ${tempuraCount > 0 ? `<span class="mini-stat">🍤 ${tempuraCount}</span>` : ''}
+                ${sashimiCount > 0 ? `<span class="mini-stat">🐟 ${sashimiCount}</span>` : ''}
+                ${dumplingCount > 0 ? `<span class="mini-stat">🥟 ${dumplingCount}</span>` : ''}
+                ${puddingCount > 0 ? `<span class="mini-stat">🍮 ${puddingCount}</span>` : ''}
+                ${hasActiveWasabi ? `<span class="mini-stat mini-stat-active">🟢 W</span>` : ''}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
                     `<span class="collection-card">${formatCardType(card.type)}${card.variant ? ` (${card.variant})` : ''}${card.type === 'maki_roll' ? ` [${card.value || 0}]` : ''}</span>`
                 ).join('') : '<span style="color: #999;">No cards yet</span>'}
-                ${puddingCount > 0 ? `<span class="collection-card" style="background: #ffb74d; color: #333;">🍮 Pudding x${puddingCount}</span>` : ''}
             </div>
         `;
         
