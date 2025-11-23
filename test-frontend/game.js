@@ -338,16 +338,54 @@ function handleRoundEnd(payload) {
         const totalScore = myPlayer?.score || 0;
         const puddingCount = myPlayer?.puddingCards?.length || 0;
         
-        // Create round end overlay with score details
+        // Sort all players by score
+        const sortedPlayers = [...(gameState?.players || [])].sort((a, b) => b.score - a.score);
+        
+        // Create round end overlay with all players' scores
         const overlay = document.createElement('div');
         overlay.className = 'round-end-overlay';
         overlay.innerHTML = `
-            <div class="round-end-content">
-                <div class="round-end-title">🍣 Round ${round-1} Completed! 🍣</div>
-                <div style="margin: 20px 0; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px;">
-                    <div style="font-size: 16px; opacity: 0.9;">Total Score: ${totalScore} pts</div>
-                    <div style="font-size: 14px; opacity: 0.8; margin-top: 10px;">🍮 Pudding: ${puddingCount}</div>
+            <div class="round-end-content" style="max-width: 600px;">
+                <div class="round-end-title">🍣 Round ${round} Completed! 🍣</div>
+                
+                <div style="margin: 20px 0; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; max-height: 400px; overflow-y: auto;">
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: white;">Standings</div>
+                    ${sortedPlayers.map((player, index) => {
+                        const isMe = player.id === myPlayerId;
+                        const roundScore = player.roundScores?.[round - 1] || 0;
+                        const rank = index + 1;
+                        
+                        return `
+                            <div style="
+                                background: ${isMe ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.1)'};
+                                padding: 12px;
+                                margin-bottom: 8px;
+                                border-radius: 8px;
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                ${isMe ? 'border: 2px solid #ffd700;' : ''}
+                            ">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 20px; font-weight: bold; color: white; min-width: 30px;">#${rank}</span>
+                                    <div>
+                                        <div style="font-size: 16px; font-weight: bold; color: white;">
+                                            ${player.name}${isMe ? ' (You)' : ''}
+                                        </div>
+                                        <div style="font-size: 12px; color: rgba(255,255,255,0.8);">
+                                            This round: +${roundScore} pts
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 24px; font-weight: bold; color: white;">${player.score}</div>
+                                    <div style="font-size: 11px; color: rgba(255,255,255,0.7);">🍮 ${player.puddingCards?.length || 0}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
+                
                 <div class="round-end-subtitle">Cooking up the next round...</div>
             </div>
         `;
@@ -359,13 +397,13 @@ function handleRoundEnd(payload) {
             overlay.classList.add('visible');
         }, 10);
         
-        // Remove after 4 seconds (longer to read the scores)
+        // Remove after 5 seconds (longer to read all scores)
         setTimeout(() => {
             overlay.classList.remove('visible');
             setTimeout(() => {
                 overlay.remove();
             }, 500);
-        }, 4000);
+        }, 5000);
     }, 100); // Small delay to let game state update
 }
 
