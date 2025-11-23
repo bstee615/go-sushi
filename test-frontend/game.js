@@ -20,7 +20,10 @@ const playersListDiv = document.getElementById('playersList');
 const collectionDiv = document.getElementById('collection');
 // Log div removed from UI but keeping function for debugging
 const logDiv = { appendChild: () => {}, scrollTop: 0, scrollHeight: 0 };
-const phaseIndicator = document.getElementById('phaseIndicator');
+const roundIndicator = document.getElementById('roundIndicator');
+const roundDots = document.getElementById('roundDots');
+const turnIndicator = document.getElementById('turnIndicator');
+const turnDots = document.getElementById('turnDots');
 const handStatusMessage = document.getElementById('handStatusMessage');
 const currentGameIdDiv = document.getElementById('currentGameId');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
@@ -716,11 +719,11 @@ function clearSelection() {
 // UI Updates
 function updatePhaseIndicator() {
     if (!gameState) {
-        phaseIndicator.innerHTML = '';
+        roundDots.innerHTML = '';
+        turnDots.innerHTML = '';
         return;
     }
     
-    phaseIndicator.className = 'phase-indicator';
     const round = gameState.currentRound || gameState.current_round || 0;
     
     // Calculate turn number (each round has multiple turns as hands are passed)
@@ -728,21 +731,21 @@ function updatePhaseIndicator() {
     const handSize = myPlayer?.handSize || 0;
     
     // Create round dots (3 rounds total)
-    const roundDots = [];
+    const roundDotsArray = [];
     for (let i = 1; i <= 3; i++) {
         if (i < round) {
-            roundDots.push('🟢'); // Completed round
+            roundDotsArray.push('🟢'); // Completed round
         } else if (i === round) {
-            roundDots.push('🔵'); // Current round
+            roundDotsArray.push('🔵'); // Current round
         } else {
-            roundDots.push('⚪'); // Future round
+            roundDotsArray.push('⚪'); // Future round
         }
     }
+    roundDots.innerHTML = roundDotsArray.join(' ');
     
     // Create turn dots (10 turns per round, based on cards remaining)
-    let turnDots = '';
-    if (gameState.phase === 'selecting' && handSize > 0) {
-        const currentTurn = 11 - handSize;
+    if (round > 0 && round <= 3) {
+        const currentTurn = handSize > 0 ? 11 - handSize : 10;
         const turnDotsArray = [];
         for (let i = 1; i <= 10; i++) {
             if (i < currentTurn) {
@@ -753,10 +756,12 @@ function updatePhaseIndicator() {
                 turnDotsArray.push('⚪'); // Future turn
             }
         }
-        turnDots = ` | ${turnDotsArray.join('')}`;
+        turnDots.innerHTML = turnDotsArray.join(' ');
+        turnIndicator.style.display = 'flex';
+    } else {
+        turnDots.innerHTML = '';
+        turnIndicator.style.display = 'none';
     }
-    
-    phaseIndicator.innerHTML = `${roundDots.join('')}${turnDots}`;
 }
 
 function updateStatusMessage(text, bgColor = '#e3f2fd', textColor = '#1565c0') {
@@ -841,24 +846,6 @@ function updateHand(animationType = null) {
         controlsDiv.appendChild(toggleBtn);
         handDiv.appendChild(controlsDiv);
     }
-    
-    // Show hint for normal mode OUTSIDE the animated container
-    if (gameState.phase === 'selecting' && !hasSelected && !canUseChopsticks) {
-        const hintDiv = document.createElement('div');
-        hintDiv.style.cssText = 'background: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 14px; text-align: center; position: relative; z-index: 2;';
-        
-        // Check if any card is selected (for non-chopsticks mode)
-        if (selectedCardIndex !== null && !chopsticksMode) {
-            hintDiv.textContent = '👆 Click selected card to withdraw';
-            hintDiv.style.background = '#fff3cd';
-            hintDiv.style.color = '#856404';
-        } else {
-            hintDiv.textContent = '👆 Click a card to play it';
-        }
-        
-        handDiv.appendChild(hintDiv);
-    }
-    
     // Create a wrapper for the animated cards container
     const cardsWrapper = document.createElement('div');
     cardsWrapper.style.cssText = 'position: relative; overflow: hidden;';

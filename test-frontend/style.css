@@ -174,10 +174,14 @@ button:disabled {
     color: white;
     padding: 15px;
     border-radius: 8px;
-    min-width: 120px;
+    width: 120px;
+    height: 80px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 3px solid transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .card:hover {
