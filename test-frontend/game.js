@@ -293,7 +293,10 @@ function continueStateUpdate(payload, animationType) {
     const handContent = document.getElementById('handContent');
     const collectionPanel = document.getElementById('collectionPanel');
     
-    if (gameState.phase === 'waiting') {
+    if (gameState.phase === 'finished') {
+        // Game ended - show final scores
+        handleGameEnd(payload);
+    } else if (gameState.phase === 'waiting') {
         // Show waiting message, hide game content
         waitingMessage.style.display = 'block';
         handContent.style.display = 'none';
@@ -918,7 +921,9 @@ function updateHand(animationType = null) {
     const hasSelected = myPlayer?.hasSelected;
     
     // Update status message based on game state
-    if (hasSelected && gameState.phase === 'selecting') {
+    if (gameState.phase === 'finished') {
+        updateStatusMessage('🎉 Game Over! Check the scores above', '#4caf50', 'white');
+    } else if (hasSelected && gameState.phase === 'selecting') {
         updateStatusMessage('⏳ Waiting for other players...', '#fff3cd', '#856404');
     } else if (gameState.phase === 'selecting' && !hasSelected) {
         if (chopsticksMode) {
@@ -1250,6 +1255,14 @@ function updateCollection() {
     }
     
     const myPlayer = gameState.players.find(p => p.id === myPlayerId);
+    
+    // Update persistent pudding counter
+    const puddingCountEl = document.getElementById('puddingCount');
+    if (puddingCountEl) {
+        const puddingCards = myPlayer?.puddingCards || [];
+        puddingCountEl.textContent = puddingCards.length;
+    }
+    
     if (!myPlayer || !myPlayer.collection || myPlayer.collection.length === 0) {
         collectionDiv.innerHTML = '<p style="color: #666;">No cards collected yet</p>';
         return;
@@ -1347,24 +1360,7 @@ function updateCollection() {
         collectionDiv.appendChild(cardEl);
     });
     
-    // Show total maki count if any
-    if (totalMakiValue > 0) {
-        const makiTotal = document.createElement('div');
-        makiTotal.style.cssText = 'margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 4px; font-weight: bold; color: #1565c0;';
-        makiTotal.textContent = `🍣 Total Maki: ${totalMakiValue}`;
-        collectionDiv.appendChild(makiTotal);
-    }
-    
-    // Show pudding cards (they persist across rounds)
-    // NOTE: Backend sends puddingCards (camelCase)
-    const puddingCards = myPlayer.puddingCards || [];
-    
-    if (puddingCards.length > 0) {
-        const puddingDiv = document.createElement('div');
-        puddingDiv.style.cssText = 'margin-top: 10px; padding: 8px; background: #ffb74d; border-radius: 4px; font-weight: bold; color: #333;';
-        puddingDiv.textContent = `🍮 Pudding Cards: ${puddingCards.length} (scored at game end)`;
-        collectionDiv.appendChild(puddingDiv);
-    }
+
 }
 
 function formatCardType(type) {
