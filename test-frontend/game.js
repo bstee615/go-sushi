@@ -13,7 +13,6 @@ let isAnimating = false;
 // UI Elements
 const connectionStatus = document.getElementById('connectionStatus');
 const connectBtn = document.getElementById('connectBtn');
-const disconnectBtn = document.getElementById('disconnectBtn');
 const createBtn = document.getElementById('createBtn');
 const joinBtn = document.getElementById('joinBtn');
 const startBtn = document.getElementById('startBtn');
@@ -24,6 +23,8 @@ const logDiv = document.getElementById('log');
 const phaseIndicator = document.getElementById('phaseIndicator');
 const currentGameIdDiv = document.getElementById('currentGameId');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
+const loginScreen = document.getElementById('loginScreen');
+const playingScreen = document.getElementById('playingScreen');
 
 // Logging
 function log(message, type = 'info') {
@@ -47,7 +48,6 @@ function connect() {
             connectionStatus.textContent = 'Connected';
             connectionStatus.className = 'connection-status status-connected';
             connectBtn.disabled = true;
-            disconnectBtn.disabled = false;
             createBtn.disabled = false;
             joinBtn.disabled = false;
         };
@@ -57,7 +57,6 @@ function connect() {
             connectionStatus.textContent = 'Disconnected';
             connectionStatus.className = 'connection-status status-disconnected';
             connectBtn.disabled = false;
-            disconnectBtn.disabled = true;
             createBtn.disabled = true;
             joinBtn.disabled = true;
             startBtn.disabled = true;
@@ -76,11 +75,49 @@ function connect() {
     }
 }
 
-function disconnect() {
+function logout() {
     if (ws) {
         ws.close();
         ws = null;
     }
+    
+    // Reset game state
+    gameState = null;
+    myPlayerId = null;
+    selectedCardIndex = null;
+    secondCardIndex = null;
+    chopsticksMode = false;
+    previousHandSize = 0;
+    previousRound = 0;
+    isFirstDeal = true;
+    
+    // Animate out playing screen
+    playingScreen.classList.add('fade-out');
+    
+    setTimeout(() => {
+        // Switch to login screen
+        playingScreen.style.display = 'none';
+        playingScreen.classList.remove('fade-out');
+        loginScreen.style.display = 'block';
+        
+        // Clear UI
+        handDiv.innerHTML = '';
+        playersListDiv.innerHTML = '';
+        collectionDiv.innerHTML = '';
+    }, 300);
+    
+    log('Logged out', 'info');
+}
+
+function switchToPlayingScreen() {
+    // Animate out login screen
+    loginScreen.classList.add('fade-out');
+    
+    setTimeout(() => {
+        loginScreen.style.display = 'none';
+        loginScreen.classList.remove('fade-out');
+        playingScreen.style.display = 'block';
+    }, 300);
 }
 
 // Message handling
@@ -320,6 +357,9 @@ function createGame() {
         gameId: '',
         playerName: playerName
     });
+    
+    // Switch to playing screen
+    switchToPlayingScreen();
 }
 
 function joinGame() {
@@ -342,6 +382,9 @@ function joinGame() {
         gameId: gameId,
         playerName: playerName
     });
+    
+    // Switch to playing screen
+    switchToPlayingScreen();
 }
 
 function startGame() {
@@ -1025,5 +1068,6 @@ function formatCardType(type) {
     ).join(' ');
 }
 
-// Initialize
-log('Test client loaded. Enter server URL and connect.', 'info');
+// Initialize - Auto-connect on page load
+log('Connecting to server...', 'info');
+connect();

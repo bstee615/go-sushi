@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="container">
         <div class="header">
-            <h1>🍣 Sushi Go! Test Client</h1>
+            <h1>🍣 Sushi Go! Game</h1>
             <span id="connectionStatus" class="connection-status status-disconnected">Disconnected</span>
         </div>
         
@@ -22,6 +23,9 @@
             <div class="control-group">
                 <label for="playerName">Player Name:</label>
                 <input type="text" id="playerName" placeholder="Enter your name or leave empty for random name">
+                <small style="color: #666; font-size: 12px; display: block; margin-top: 4px;">
+                    💡 Leave empty to get a random name from famous sushi chefs, anime characters, or historical figures
+                </small>
             </div>
             
             <div class="control-group">
@@ -31,15 +35,23 @@
             
             <div class="button-group">
                 <button id="connectBtn" onclick="connect()">Connect</button>
-                <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
                 <button id="createBtn" onclick="createGame()" disabled>Create New Game</button>
                 <button id="joinBtn" onclick="joinGame()" disabled>Join Existing Game</button>
-                <button id="startBtn" onclick="startGame()" disabled>Start Game</button>
             </div>
-            
-            <div id="currentGameId" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px; display: none;">
-                <strong>Current Game ID:</strong> <span id="gameIdDisplay"></span>
-                <button onclick="copyGameId()" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Copy</button>
+        </div>
+    </div>
+    
+    <!-- Playing Screen -->
+    <div id="playingScreen" class="container" style="display: none;">
+        <div class="header">
+            <h1>🍣 Sushi Go! Game</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="currentGameId" style="padding: 8px 15px; background: #f0f0f0; border-radius: 5px;">
+                    <strong>Game:</strong> <span id="gameIdDisplay"></span>
+                    <button onclick="copyGameId()" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Copy</button>
+                </div>
+                <button id="startBtn" onclick="startGame()" disabled>Start Game</button>
+                <button onclick="logout()" style="background: #dc3545;">Logout</button>
             </div>
         </div>
         
