@@ -667,10 +667,14 @@ function updatePlayersList() {
         
         // Calculate maki count for this player
         let makiCount = 0;
+        let dumplingCount = 0;
         if (player.collection) {
             player.collection.forEach(card => {
                 if (card.type === 'maki_roll') {
                     makiCount += card.value || 0;
+                }
+                if (card.type === 'dumpling') {
+                    dumplingCount++;
                 }
             });
         }
@@ -681,7 +685,7 @@ function updatePlayersList() {
         li.innerHTML = `
             <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
             <div class="player-stats">
-                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}${puddingCount > 0 ? ` | 🍮 Pudding: ${puddingCount}` : ''}
+                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}${dumplingCount > 0 ? ` | 🥟 Dumpling: ${dumplingCount}` : ''}${puddingCount > 0 ? ` | 🍮 Pudding: ${puddingCount}` : ''}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
