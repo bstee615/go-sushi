@@ -1,0 +1,43 @@
+# Field path example
+# Demonstrates the new generic field reference system
+# Use <response.field.path> to reference any field from the last server response
+
+turns:
+  # Step 1: Player A creates a new game
+  - client: A
+    message:
+      type: join_game
+      payload:
+        gameId: ""
+        playerName: "Alice"
+  
+  # Step 2: Player B joins using the gameId from the response
+  # <response.gameId> extracts the gameId field from the previous response
+  - client: B
+    message:
+      type: join_game
+      payload:
+        gameId: <response.gameId>
+        playerName: "Bob"
+  
+  # Step 3: Start the game using the same gameId
+  - client: A
+    message:
+      type: start_game
+      payload:
+        gameId: <response.gameId>
+  
+  # Step 4: Both players select cards
+  - client: A
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false
+  
+  - client: B
+    message:
+      type: select_card
+      payload:
+        cardIndex: 0
+        useChopsticks: false

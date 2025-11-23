@@ -9,13 +9,13 @@ turns:
   message:
     type: join_game
     payload:
-      gameId: <globalGame>
+      gameId: <response.gameId>
       playerName: "Player B"
 - client: A
   message:
     type: start_game
     payload:
-      gameId: <globalGame>
+      gameId: <response.gameId>
 - client: A
   message:
     type: select_card
