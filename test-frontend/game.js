@@ -286,9 +286,16 @@ function selectCard(index) {
 }
 
 function withdrawCard() {
-    // Note: This would require backend support to allow withdrawing a selection
-    // For now, just log that it's not supported
-    log('Withdrawing cards is not currently supported by the server', 'error');
+    if (!gameState || !gameState.gameId) {
+        log('No active game', 'error');
+        return;
+    }
+    
+    sendMessage('withdraw_card', {
+        gameId: gameState.gameId
+    });
+    
+    log('Withdrawing card selection...', 'info');
 }
 
 function playCards() {
@@ -379,8 +386,23 @@ function updateHand() {
         waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;';
         waitingDiv.innerHTML = `
             <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">⏳ Waiting for other players...</div>
-            <div style="font-size: 14px;">You have played your card(s) for this turn</div>
+            <div style="font-size: 14px; margin-bottom: 10px;">You have played your card(s) for this turn</div>
         `;
+        
+        const withdrawBtn = document.createElement('button');
+        withdrawBtn.textContent = '↩️ Withdraw Selection';
+        withdrawBtn.onclick = withdrawCard;
+        withdrawBtn.style.cssText = `
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        `;
+        waitingDiv.appendChild(withdrawBtn);
+        
         handDiv.appendChild(waitingDiv);
         
         // Show remaining cards greyed out

@@ -9,6 +9,7 @@ const (
 	MsgTypeJoinGame     MessageType = "join_game"
 	MsgTypeStartGame    MessageType = "start_game"
 	MsgTypeSelectCard   MessageType = "select_card"
+	MsgTypeWithdrawCard MessageType = "withdraw_card"
 	MsgTypeGameState    MessageType = "game_state"
 	MsgTypeCardRevealed MessageType = "card_revealed"
 	MsgTypeRoundEnd     MessageType = "round_end"

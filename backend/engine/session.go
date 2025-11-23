@@ -252,6 +252,39 @@ func (e *Engine) PlayCard(gameID, playerID string, cardIndex int, useChopsticks 
 	return nil
 }
 
+// WithdrawCard allows a player to withdraw their card selection
+func (e *Engine) WithdrawCard(gameID, playerID string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	game, exists := e.games[gameID]
+	if !exists {
+		return ErrGameNotFound
+	}
+
+	// Find the player
+	var player *models.Player
+	for _, p := range game.Players {
+		if p.ID == playerID {
+			player = p
+			break
+		}
+	}
+	if player == nil {
+		return errors.New("player not found")
+	}
+
+	// Check if player has selected a card
+	if player.SelectedCard == nil {
+		return errors.New("player has not selected a card")
+	}
+
+	// Clear the selected card
+	player.SelectedCard = nil
+
+	return nil
+}
+
 // RevealCards reveals all selected cards and adds them to player collections
 func (e *Engine) RevealCards(gameID string) error {
 	e.mu.Lock()

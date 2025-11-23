@@ -28,7 +28,7 @@ type Client struct {
 // WSHandler implements WebSocketHandler interface
 type WSHandler struct {
 	engine  *engine.Engine
-	clients map[string]*Client // playerID -> Client
+	clients map[string]*Client            // playerID -> Client
 	games   map[string]map[string]*Client // gameID -> playerID -> Client
 	mu      sync.RWMutex
 }
@@ -95,7 +95,7 @@ func (h *WSHandler) writePump(client *Client) {
 // handleMessage processes incoming messages from clients
 func (h *WSHandler) handleMessage(client *Client, message []byte) {
 	log.Printf("Received message from client %s: %s", client.playerID, string(message))
-	
+
 	var msg models.Message
 	if err := json.Unmarshal(message, &msg); err != nil {
 		log.Printf("Failed to unmarshal message: %v", err)
@@ -113,6 +113,9 @@ func (h *WSHandler) handleMessage(client *Client, message []byte) {
 	case models.MsgTypeSelectCard:
 		log.Printf("Handling select_card for player %s in game %s", client.playerID, client.gameID)
 		h.handleSelectCard(client, msg.Payload)
+	case models.MsgTypeWithdrawCard:
+		log.Printf("Handling withdraw_card for player %s in game %s", client.playerID, client.gameID)
+		h.handleWithdrawCard(client, msg.Payload)
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)
 		h.sendError(client, "Unknown message type")
@@ -145,7 +148,7 @@ func (h *WSHandler) handleJoinGame(client *Client, payload json.RawMessage) {
 			h.sendError(client, "Failed to create game: "+err.Error())
 			return
 		}
-		
+
 		// Set player name
 		if len(game.Players) > 0 {
 			game.Players[0].Name = data.PlayerName
@@ -327,6 +330,25 @@ func (h *WSHandler) handleSelectCard(client *Client, payload json.RawMessage) {
 		log.Printf("handleSelectCard: Complete")
 	}
 	log.Printf("handleSelectCard: Finished for player %s", client.playerID)
+}
+
+// handleWithdrawCard handles withdraw_card messages
+func (h *WSHandler) handleWithdrawCard(client *Client, payload json.RawMessage) {
+	log.Printf("handleWithdrawCard: Starting for player %s", client.playerID)
+
+	// Withdraw the card selection
+	if err := h.engine.WithdrawCard(client.gameID, client.playerID); err != nil {
+		log.Printf("handleWithdrawCard: WithdrawCard failed: %v", err)
+		h.sendError(client, "Failed to withdraw card: "+err.Error())
+		return
+	}
+
+	log.Printf("handleWithdrawCard: Card withdrawn successfully, broadcasting state")
+
+	// Broadcast updated game state
+	h.broadcastGameState(client.gameID)
+
+	log.Printf("handleWithdrawCard: Finished for player %s", client.playerID)
 }
 
 // broadcastGameState sends the current game state to all players in a game
