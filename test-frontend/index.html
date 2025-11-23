@@ -157,6 +157,59 @@
             box-shadow: 0 0 20px rgba(255,215,0,0.5);
         }
         
+        /* Card animations */
+        @keyframes slideInFromTop {
+            from {
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideInFromLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .card.deal-animation {
+            animation: slideInFromTop 0.5s ease-out forwards;
+        }
+        
+        .card.turn-animation {
+            animation: slideInFromLeft 0.5s ease-out forwards;
+        }
+        
+        /* Stagger animation delays for multiple cards */
+        .card.deal-animation:nth-child(1) { animation-delay: 0s; }
+        .card.deal-animation:nth-child(2) { animation-delay: 0.05s; }
+        .card.deal-animation:nth-child(3) { animation-delay: 0.1s; }
+        .card.deal-animation:nth-child(4) { animation-delay: 0.15s; }
+        .card.deal-animation:nth-child(5) { animation-delay: 0.2s; }
+        .card.deal-animation:nth-child(6) { animation-delay: 0.25s; }
+        .card.deal-animation:nth-child(7) { animation-delay: 0.3s; }
+        .card.deal-animation:nth-child(8) { animation-delay: 0.35s; }
+        .card.deal-animation:nth-child(9) { animation-delay: 0.4s; }
+        .card.deal-animation:nth-child(10) { animation-delay: 0.45s; }
+        
+        .card.turn-animation:nth-child(1) { animation-delay: 0s; }
+        .card.turn-animation:nth-child(2) { animation-delay: 0.05s; }
+        .card.turn-animation:nth-child(3) { animation-delay: 0.1s; }
+        .card.turn-animation:nth-child(4) { animation-delay: 0.15s; }
+        .card.turn-animation:nth-child(5) { animation-delay: 0.2s; }
+        .card.turn-animation:nth-child(6) { animation-delay: 0.25s; }
+        .card.turn-animation:nth-child(7) { animation-delay: 0.3s; }
+        .card.turn-animation:nth-child(8) { animation-delay: 0.35s; }
+        .card.turn-animation:nth-child(9) { animation-delay: 0.4s; }
+        
         .card-type {
             font-weight: 700;
             font-size: 16px;

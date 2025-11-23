@@ -5,6 +5,9 @@ let myPlayerId = null;
 let selectedCardIndex = null;
 let secondCardIndex = null;
 let chopsticksMode = false;
+let previousHandSize = 0;
+let previousRound = 0;
+let isFirstDeal = true;
 
 // UI Elements
 const connectionStatus = document.getElementById('connectionStatus');
@@ -130,6 +133,28 @@ function handleGameState(payload) {
     const previousSelected = gameState?.players?.find(p => p.id === myPlayerId)?.hasSelected;
     const currentSelected = payload.players?.find(p => p.id === myPlayerId)?.hasSelected;
     
+    // Detect animation type
+    const currentRound = payload.currentRound || payload.current_round || 0;
+    const currentHandSize = newHand?.length || 0;
+    
+    // Determine if this is a new deal (start of round) or turn transition (hand passed)
+    let animationType = null;
+    if (currentRound !== previousRound && currentRound > 0) {
+        // New round - deal animation
+        animationType = 'deal';
+        isFirstDeal = false;
+    } else if (previousHandSize > 0 && currentHandSize > 0 && currentHandSize !== previousHandSize) {
+        // Hand passed - turn animation
+        animationType = 'turn';
+    } else if (currentHandSize > 0 && previousHandSize === 0 && !isFirstDeal) {
+        // First hand of a new round
+        animationType = 'deal';
+    }
+    
+    // Update tracking variables
+    previousHandSize = currentHandSize;
+    previousRound = currentRound;
+    
     gameState = payload;
     
     // Get my player ID from the payload
@@ -157,9 +182,9 @@ function handleGameState(payload) {
         secondCardIndex = null;
     }
     
-    // Update UI
+    // Update UI with animation type
     updatePhaseIndicator();
-    updateHand();
+    updateHand(animationType);
     updatePlayersList();
     updateCollection();
     
@@ -393,7 +418,7 @@ function updatePhaseIndicator() {
     phaseIndicator.textContent = `Round ${round}${turnInfo} - ${gameState.phase}`;
 }
 
-function updateHand() {
+function updateHand(animationType = null) {
     handDiv.innerHTML = '';
     
     if (!gameState || !myPlayerId) {
@@ -505,10 +530,18 @@ function updateHand() {
         handDiv.appendChild(hintDiv);
     }
     
-    // Display actual cards
+    // Display actual cards with animation
     myHand.forEach((card, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
+        
+        // Add animation class based on type
+        if (animationType === 'deal') {
+            cardEl.classList.add('deal-animation');
+        } else if (animationType === 'turn') {
+            cardEl.classList.add('turn-animation');
+        }
+        
         if (selectedCardIndex === index || secondCardIndex === index) {
             cardEl.className += ' selected';
         }
@@ -521,6 +554,13 @@ function updateHand() {
         `;
         
         handDiv.appendChild(cardEl);
+        
+        // Remove animation class after animation completes to allow re-triggering
+        if (animationType) {
+            setTimeout(() => {
+                cardEl.classList.remove('deal-animation', 'turn-animation');
+            }, 500 + (index * 50)); // Match animation duration + delay
+        }
     });
 }
 
