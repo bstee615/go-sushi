@@ -323,7 +323,8 @@ function continueStateUpdate(payload, animationType) {
 
 // Handle round end message
 function handleRoundEnd(payload) {
-    const round = payload.round || gameState?.currentRound || 0;
+    // payload.round is the round that just completed
+    const round = payload.round || 0;
     
     // Create round end overlay
     const overlay = document.createElement('div');
