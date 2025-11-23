@@ -828,9 +828,8 @@ function updateHand(animationType = null) {
     
     // Check if player has chopsticks and if they've already selected
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
-    // NOTE: Backend sends has_chopsticks (snake_case), not hasChopsticks
-    const hasChopsticksInCollection = myPlayer?.collection?.some(card => card.type === 'chopsticks');
-    const canUseChopsticks = myPlayer?.has_chopsticks !== undefined ? myPlayer.has_chopsticks : hasChopsticksInCollection;
+    // NOTE: Backend sends hasChopsticks (camelCase) which indicates if chopsticks are available to use (not just in collection)
+    const canUseChopsticks = !!(myPlayer?.hasChopsticks);
     const hasSelected = myPlayer?.hasSelected;
     
     // Update status message based on game state
@@ -855,27 +854,7 @@ function updateHand(animationType = null) {
         updateStatusMessage('🔄 Moving to the next turn...', '#e0e0e0', '#666');
     }
     
-    // Show chopsticks toggle button (only if chopsticks are available to use)
-    if (canUseChopsticks && gameState.phase === 'selecting' && !hasSelected) {
-        const controlsDiv = document.createElement('div');
-        controlsDiv.style.cssText = 'background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 15px;';
-        
-        const toggleBtn = document.createElement('button');
-        toggleBtn.textContent = chopsticksMode ? '🥢 Put Away Chopsticks' : '🥢 Use Chopsticks!';
-        toggleBtn.onclick = toggleChopsticks;
-        toggleBtn.style.cssText = `
-            padding: 8px 16px;
-            background: ${chopsticksMode ? '#4caf50' : '#667eea'};
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-        `;
-        
-        controlsDiv.appendChild(toggleBtn);
-        handDiv.appendChild(controlsDiv);
-    }
+    // Chopsticks toggle is now in the stats bar below
     // Create a wrapper for the animated cards container
     const cardsWrapper = document.createElement('div');
     cardsWrapper.style.cssText = 'position: relative; overflow: hidden;';
@@ -1032,20 +1011,27 @@ function updateHand(animationType = null) {
         const hasActiveWasabi = wasabiCount > nigiriCount;
         const wasabiStatus = hasActiveWasabi ? 'ACTIVE' : (wasabiCount > 0 ? 'USED' : 'NONE');
         
+        // Check chopsticks status
+        const chopsticksStatus = canUseChopsticks ? (chopsticksMode ? 'ACTIVE' : 'READY') : 'NONE';
+        const hasChopsticksAvailable = canUseChopsticks && gameState.phase === 'selecting' && !hasSelected;
+        
         // Create stat items - 3 per row for consistent layout
         const stats = [
-            { emoji: '🍣', label: 'Maki', count: makiCount, color: '#e3f2fd' },
+            { emoji: '�', llabel: 'Maki', count: makiCount, color: '#e3f2fd' },
             { emoji: '🍤', label: 'Tempura', count: tempuraCount, color: '#fff3e0' },
             { emoji: '🐟', label: 'Sashimi', count: sashimiCount, color: '#fce4ec' },
             { emoji: '🥟', label: 'Dumpling', count: dumplingCount, color: '#f3e5f5' },
             { emoji: '🍮', label: 'Pudding', count: puddingCount, color: '#ffb74d' },
-            { emoji: '🟢', label: 'Wasabi', count: wasabiStatus, color: hasActiveWasabi ? '#4caf50' : '#e0e0e0', isWasabi: true }
+            { emoji: '🟢', label: 'Wasabi', count: wasabiStatus, color: hasActiveWasabi ? '#4caf50' : '#e0e0e0', isWasabi: true },
+            { emoji: '🥢', label: 'Chopsticks', count: chopsticksStatus, color: chopsticksMode ? '#4caf50' : (canUseChopsticks ? '#8B4513' : '#e0e0e0'), isChopsticks: true, clickable: hasChopsticksAvailable }
         ];
         
         stats.forEach(stat => {
             const statItem = document.createElement('div');
-            const bgColor = stat.isWasabi ? stat.color : 'white';
-            const textColor = stat.isWasabi && hasActiveWasabi ? 'white' : '#333';
+            const isSpecial = stat.isWasabi || stat.isChopsticks;
+            const bgColor = isSpecial ? stat.color : 'white';
+            const textColor = (stat.isWasabi && hasActiveWasabi) || (stat.isChopsticks && chopsticksMode) ? 'white' : '#333';
+            const shouldPulse = (stat.isWasabi && hasActiveWasabi) || (stat.isChopsticks && chopsticksMode);
             
             statItem.style.cssText = `
                 background: ${bgColor};
@@ -1053,14 +1039,31 @@ function updateHand(animationType = null) {
                 border-radius: 6px;
                 text-align: center;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ${stat.isWasabi && hasActiveWasabi ? 'animation: pulse 2s infinite;' : ''}
+                ${shouldPulse ? 'animation: pulse 2s infinite;' : ''}
+                ${stat.clickable ? 'cursor: pointer; transition: transform 0.2s;' : ''}
             `;
+            
+            if (stat.clickable) {
+                statItem.onclick = toggleChopsticks;
+                statItem.onmouseover = () => {
+                    statItem.style.transform = 'scale(1.05)';
+                };
+                statItem.onmouseout = () => {
+                    statItem.style.transform = 'scale(1)';
+                };
+            }
             
             if (stat.isWasabi) {
                 statItem.innerHTML = `
                     <div style="font-size: 20px; margin-bottom: 3px;">${hasActiveWasabi ? '🟢' : '⚪'}</div>
                     <div style="font-size: 14px; font-weight: bold; color: ${textColor}; margin-bottom: 2px;">${stat.count}</div>
                     <div style="font-size: 10px; color: ${hasActiveWasabi ? 'white' : '#666'}; text-transform: uppercase;">${stat.label}</div>
+                `;
+            } else if (stat.isChopsticks) {
+                statItem.innerHTML = `
+                    <div style="font-size: 20px; margin-bottom: 3px;">${stat.emoji}</div>
+                    <div style="font-size: 14px; font-weight: bold; color: ${textColor}; margin-bottom: 2px;">${stat.count}</div>
+                    <div style="font-size: 10px; color: ${textColor}; text-transform: uppercase;">${stat.label}</div>
                 `;
             } else {
                 statItem.innerHTML = `
