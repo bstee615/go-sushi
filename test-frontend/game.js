@@ -778,7 +778,7 @@ function updatePlayersList() {
         // Count pudding cards
         const puddingCount = player.puddingCards ? player.puddingCards.length : 0;
         
-        // Check if wasabi is active
+        // Check if wasabi is active (more wasabi than nigiri means unused wasabi)
         const hasActiveWasabi = wasabiCount > nigiriCount;
         
         li.innerHTML = `
@@ -792,7 +792,7 @@ function updatePlayersList() {
                 ${sashimiCount > 0 ? `<span class="mini-stat">🐟 ${sashimiCount}</span>` : ''}
                 ${dumplingCount > 0 ? `<span class="mini-stat">🥟 ${dumplingCount}</span>` : ''}
                 ${puddingCount > 0 ? `<span class="mini-stat">🍮 ${puddingCount}</span>` : ''}
-                ${hasActiveWasabi ? `<span class="mini-stat mini-stat-active">🟢 W</span>` : ''}
+                ${hasActiveWasabi ? `<span class="mini-stat mini-stat-active">🟢</span>` : ''}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
