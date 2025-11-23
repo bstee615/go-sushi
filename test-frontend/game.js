@@ -372,9 +372,6 @@ function handleRoundEnd(payload) {
                                         <div style="font-size: 16px; font-weight: bold; color: white;">
                                             ${player.name}${isMe ? ' (You)' : ''}
                                         </div>
-                                        <div style="font-size: 12px; color: rgba(255,255,255,0.8);">
-                                            This round: +${roundScore} pts
-                                        </div>
                                     </div>
                                 </div>
                                 <div style="text-align: right;">
