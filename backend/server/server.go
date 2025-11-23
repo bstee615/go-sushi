@@ -72,7 +72,12 @@ func NewServer(addr string, options *ServerOptions) (*Server, error) {
 	mux.HandleFunc("/ws", wsHandler.HandleConnection)
 
 	// Serve static files from frontend directory
-	fs := http.FileServer(http.Dir("../test-frontend"))
+	// Try multiple paths for different environments (local dev vs Docker)
+	frontendPath := "./test-frontend"
+	if _, err := http.Dir(frontendPath).Open("index.html"); err != nil {
+		frontendPath = "../test-frontend"
+	}
+	fs := http.FileServer(http.Dir(frontendPath))
 	mux.Handle("/", fs)
 
 	httpServer := &http.Server{
