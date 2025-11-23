@@ -71,6 +71,10 @@ func NewServer(addr string, options *ServerOptions) (*Server, error) {
 	})
 	mux.HandleFunc("/ws", wsHandler.HandleConnection)
 
+	// Serve static files from frontend directory
+	fs := http.FileServer(http.Dir("../test-frontend"))
+	mux.Handle("/", fs)
+
 	httpServer := &http.Server{
 		Handler: mux,
 	}

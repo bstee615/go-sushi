@@ -1465,5 +1465,11 @@ function getCardColor(cardType) {
 }
 
 // Initialize - Auto-connect on page load
+// Set the WebSocket URL based on current location
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const host = window.location.host || 'localhost:8080';
+const wsUrl = `${protocol}//${host}/ws`;
+document.getElementById('serverUrl').value = wsUrl;
+
 log('Connecting to server...', 'info');
 connect();
