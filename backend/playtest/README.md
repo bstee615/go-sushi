@@ -42,6 +42,7 @@ Example:
 ### Command-Line Options
 
 - `--server <URL>`: WebSocket server URL (default: `ws://localhost:8080/ws`)
+- `--start-server`: Start a test server on a random port (useful for isolated testing)
 - `--verbose`: Print state snapshot after each turn for detailed debugging
 
 Examples:
@@ -49,8 +50,14 @@ Examples:
 # Use a different server
 .\playtest.exe --server ws://localhost:9000/ws .\playtest\tests\two-players-one-turn.yaml
 
+# Start a test server automatically
+.\playtest.exe --start-server .\playtest\tests\two-players-one-turn.yaml
+
 # Enable verbose output
 .\playtest.exe --verbose .\playtest\tests\two-players-one-turn.yaml
+
+# Combine options
+.\playtest.exe --start-server --verbose .\playtest\tests\two-players-one-turn.yaml
 ```
 
 ## Test File Format
@@ -80,32 +87,61 @@ The runner supports all WebSocket message types:
 
 ### Variable Substitution
 
-The runner automatically captures values from server responses and makes them available for use in subsequent messages.
+The runner automatically captures values from server responses and makes them available for use in subsequent messages using field path notation.
 
-#### Automatic Variables
+#### Field Path Syntax
 
-- `<globalGame>`: Automatically set to the `gameId` from any server response
+Use `<response.field.path>` to reference any field from the last server response:
 
-#### Variable Syntax
+- `<response.gameId>`: Extract the gameId field
+- `<response.players[0].id>`: Extract the first player's ID
+- `<response.myPlayerId>`: Extract your player ID
+- `<response.currentRound>`: Extract the current round number
 
-Use angle brackets to reference variables: `<variableName>`
+#### Backward Compatibility
 
-Example:
+- `<globalGame>`: Still supported - automatically set to the `gameId` from any server response
+
+#### Examples
+
+**Basic field access:**
 ```yaml
 turns:
   - client: A
     message:
       type: join_game
       payload:
-        gameId: ""              # Empty string = create new game
+        gameId: ""
         playerName: "Player A"
   
+  # Use the gameId from the previous response
   - client: B
     message:
       type: join_game
       payload:
-        gameId: <globalGame>    # Use the game ID from previous response
+        gameId: <response.gameId>
         playerName: "Player B"
+```
+
+**Array access:**
+```yaml
+# Access nested fields and array elements
+- client: A
+  message:
+    type: some_action
+    payload:
+      targetPlayerId: <response.players[0].id>
+```
+
+**Multiple field references:**
+```yaml
+- client: A
+  message:
+    type: complex_action
+    payload:
+      gameId: <response.gameId>
+      round: <response.currentRound>
+      playerId: <response.myPlayerId>
 ```
 
 ### Complete Example

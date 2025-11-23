@@ -10,18 +10,33 @@ import (
 )
 
 var verbose bool
+var startServer bool
 
 func main() {
 	serverURL := flag.String("server", "ws://localhost:8080/ws", "WebSocket server URL")
 	flag.BoolVar(&verbose, "verbose", false, "Print state snapshot after each turn")
+	flag.BoolVar(&startServer, "start-server", false, "Start a test server on a random port")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Println("Usage: playtest [--server URL] [--verbose] <test-file-or-directory>")
+		fmt.Println("Usage: playtest [--server URL] [--verbose] [--start-server] <test-file-or-directory>")
 		os.Exit(1)
 	}
 
 	path := flag.Arg(0)
+	
+	// Start test server if requested
+	if startServer {
+		testServer, err := runner.StartTestServer()
+		if err != nil {
+			fmt.Printf("Failed to start test server: %v\n", err)
+			os.Exit(1)
+		}
+		defer testServer.Stop()
+		
+		*serverURL = testServer.URL
+		fmt.Printf("Started test server on %s\n", testServer.URL)
+	}
 	
 	// Check if path is a file or directory
 	info, err := os.Stat(path)

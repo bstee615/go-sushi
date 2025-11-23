@@ -3,30 +3,19 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/sushi-go-game/backend/engine"
-	"github.com/sushi-go-game/backend/handlers"
+	"github.com/sushi-go-game/backend/server"
 )
 
 func main() {
-	// Initialize game engine
-	gameEngine := engine.NewEngine()
-	
-	// Initialize WebSocket handler
-	wsHandler := handlers.NewWSHandler(gameEngine)
-	
-	// Set up routes
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-	
-	http.HandleFunc("/ws", wsHandler.HandleConnection)
+	// Create server on port 8080
+	srv, err := server.NewServer(":8080")
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
 
-	port := ":8080"
-	fmt.Printf("Server starting on port %s\n", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	fmt.Printf("Server starting on port %d\n", srv.Port)
+	if err := srv.Start(); err != nil {
+		log.Fatal("Server error: ", err)
 	}
 }
