@@ -25,6 +25,7 @@ const currentGameIdDiv = document.getElementById('currentGameId');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
 const loginScreen = document.getElementById('loginScreen');
 const playingScreen = document.getElementById('playingScreen');
+const gamesListDiv = document.getElementById('gamesList');
 
 // Logging
 function log(message, type = 'info') {
@@ -53,6 +54,9 @@ function connect() {
             connectionStatus.style.display = 'none';
             createBtn.disabled = false;
             joinBtn.disabled = false;
+            
+            // Request list of games
+            requestGamesList();
         };
         
         ws.onclose = () => {
@@ -166,6 +170,15 @@ function handleMessage(data) {
                 break;
             case 'game_end':
                 log(`Game ended: ${JSON.stringify(message.payload)}`, 'received');
+                break;
+            case 'list_games':
+                handleGamesList(message.payload);
+                break;
+            case 'game_deleted':
+                handleGameDeleted(message.payload);
+                break;
+            case 'player_kicked':
+                handlePlayerKicked(message.payload);
                 break;
             case 'error':
                 log(`Error: ${message.payload.message || JSON.stringify(message.payload)}`, 'error');
@@ -399,6 +412,25 @@ function joinGame() {
     switchToPlayingScreen();
 }
 
+function joinGameById(gameId) {
+    const playerName = document.getElementById('playerName').value;
+    
+    // Player name is now optional - backend will generate one if empty
+    if (playerName) {
+        log(`Joining game ${gameId} as ${playerName}...`, 'info');
+    } else {
+        log(`Joining game ${gameId} with random name...`, 'info');
+    }
+    
+    sendMessage('join_game', {
+        gameId: gameId,
+        playerName: playerName
+    });
+    
+    // Switch to playing screen
+    switchToPlayingScreen();
+}
+
 function startGame() {
     if (!gameState || !gameState.gameId) {
         log('No active game', 'error');
@@ -414,6 +446,117 @@ function copyGameId() {
     }).catch(err => {
         log('Failed to copy game ID', 'error');
     });
+}
+
+function kickPlayer(playerId) {
+    if (!gameState || !gameState.gameId) {
+        log('No active game', 'error');
+        return;
+    }
+    
+    if (gameState.phase !== 'waiting') {
+        log('Can only kick players before game starts', 'error');
+        return;
+    }
+    
+    sendMessage('kick_player', { playerId: playerId });
+    log(`Kicking player ${playerId}...`, 'info');
+}
+
+function requestGamesList() {
+    sendMessage('list_games', {});
+}
+
+function deleteGame(gameId) {
+    if (confirm(`Are you sure you want to delete game ${gameId}?`)) {
+        sendMessage('delete_game', { gameId: gameId });
+        log(`Deleting game ${gameId}...`, 'info');
+    }
+}
+
+function handleGamesList(payload) {
+    const games = payload.games || [];
+    
+    if (games.length === 0) {
+        gamesListDiv.innerHTML = '<p style="color: #999; text-align: center;">No active games</p>';
+        return;
+    }
+    
+    gamesListDiv.innerHTML = '';
+    games.forEach(game => {
+        const gameItem = document.createElement('div');
+        gameItem.style.cssText = 'background: #f8f9fa; padding: 12px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;';
+        
+        gameItem.innerHTML = `
+            <div>
+                <div style="font-weight: bold; color: #333;">${game.id}</div>
+                <div style="font-size: 12px; color: #666;">Players: ${game.playerCount} | Phase: ${game.phase}</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="joinGameById('${game.id}')" style="padding: 6px 12px; font-size: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Join</button>
+                <button onclick="deleteGame('${game.id}')" style="padding: 6px 10px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+            </div>
+        `;
+        
+        gamesListDiv.appendChild(gameItem);
+    });
+}
+
+function handleGameDeleted(payload) {
+    const message = payload.message || 'This game has been deleted';
+    
+    // Show alert
+    alert(message);
+    
+    // Return to login screen
+    returnToLogin();
+}
+
+function handlePlayerKicked(payload) {
+    const message = payload.message || 'You have been kicked from the game';
+    
+    // Show alert
+    alert(message);
+    
+    // Return to login screen
+    returnToLogin();
+}
+
+function returnToLogin() {
+    // Reset game state
+    gameState = null;
+    myPlayerId = null;
+    selectedCardIndex = null;
+    secondCardIndex = null;
+    chopsticksMode = false;
+    previousHandSize = 0;
+    previousRound = 0;
+    isFirstDeal = true;
+    
+    // Animate out playing screen
+    playingScreen.classList.add('fade-out');
+    
+    setTimeout(() => {
+        // Switch to login screen
+        playingScreen.style.display = 'none';
+        playingScreen.classList.remove('fade-out', 'screen');
+        loginScreen.style.display = 'block';
+        loginScreen.classList.add('screen');
+        
+        // Clear UI
+        handDiv.innerHTML = '';
+        playersListDiv.innerHTML = '';
+        collectionDiv.innerHTML = '';
+        
+        // Clear inputs
+        document.getElementById('playerName').value = '';
+        document.getElementById('gameId').value = '';
+        
+        // Refresh games list
+        requestGamesList();
+    }, 300);
+    
+    log('Returned to login screen', 'info');
 }
 
 function toggleChopsticks() {
@@ -925,8 +1068,14 @@ function updatePlayersList() {
         // Check if wasabi is active (more wasabi than nigiri means unused wasabi)
         const hasActiveWasabi = wasabiCount > nigiriCount;
         
+        // Show kick button only in waiting phase and for other players
+        const canKick = gameState.phase === 'waiting' && !isMe;
+        
         li.innerHTML = `
-            <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
+                ${canKick ? `<button onclick="kickPlayer('${player.id}')" style="padding: 4px 8px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Kick</button>` : ''}
+            </div>
             <div class="player-stats">
                 Score: ${player.score} | Hand: ${player.handSize} cards
             </div>

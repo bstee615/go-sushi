@@ -479,3 +479,27 @@ button:disabled {
         transform: translateY(-20px);
     }
 }
+
+/* Games List */
+#gamesList {
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #f0f0f0;
+}
+
+#gamesList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#gamesList::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+#gamesList::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 4px;
+}
+
+#gamesList::-webkit-scrollbar-thumb:hover {
+    background: #5568d3;
+}

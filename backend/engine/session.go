@@ -128,6 +128,32 @@ func (e *Engine) JoinGame(gameID, playerID string) error {
 	return nil
 }
 
+// RemovePlayer removes a player from a game (only allowed in waiting phase)
+func (e *Engine) RemovePlayer(gameID, playerID string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	game, exists := e.games[gameID]
+	if !exists {
+		return ErrGameNotFound
+	}
+
+	// Only allow removing players in waiting phase
+	if game.RoundPhase != models.PhaseWaitingForPlayers {
+		return errors.New("can only remove players before game starts")
+	}
+
+	// Find and remove the player
+	for i, p := range game.Players {
+		if p.ID == playerID {
+			game.Players = append(game.Players[:i], game.Players[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("player not found in game")
+}
+
 // StartGame starts a game if minimum player count is met
 func (e *Engine) StartGame(gameID string) error {
 	e.mu.Lock()
@@ -161,6 +187,37 @@ func (e *Engine) GetGame(gameID string) (*models.Game, error) {
 	}
 
 	return game, nil
+}
+
+// ListGames returns a list of all active games
+func (e *Engine) ListGames() []map[string]interface{} {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	games := make([]map[string]interface{}, 0, len(e.games))
+	for _, game := range e.games {
+		games = append(games, map[string]interface{}{
+			"id":          game.ID,
+			"playerCount": len(game.Players),
+			"phase":       game.RoundPhase,
+			"round":       game.CurrentRound,
+		})
+	}
+
+	return games
+}
+
+// DeleteGame removes a game from the engine
+func (e *Engine) DeleteGame(gameID string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if _, exists := e.games[gameID]; !exists {
+		return ErrGameNotFound
+	}
+
+	delete(e.games, gameID)
+	return nil
 }
 
 // generateUniqueGameID generates a unique game identifier

@@ -27,18 +27,20 @@ type Client struct {
 
 // WSHandler implements WebSocketHandler interface
 type WSHandler struct {
-	engine  *engine.Engine
-	clients map[string]*Client            // playerID -> Client
-	games   map[string]map[string]*Client // gameID -> playerID -> Client
-	mu      sync.RWMutex
+	engine         *engine.Engine
+	clients        map[string]*Client            // playerID -> Client
+	games          map[string]map[string]*Client // gameID -> playerID -> Client
+	allConnections map[*Client]bool              // All connected clients (including those not in games)
+	mu             sync.RWMutex
 }
 
 // NewWSHandler creates a new WebSocket handler
 func NewWSHandler(engine *engine.Engine) *WSHandler {
 	return &WSHandler{
-		engine:  engine,
-		clients: make(map[string]*Client),
-		games:   make(map[string]map[string]*Client),
+		engine:         engine,
+		clients:        make(map[string]*Client),
+		games:          make(map[string]map[string]*Client),
+		allConnections: make(map[*Client]bool),
 	}
 }
 
@@ -54,6 +56,13 @@ func (h *WSHandler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		conn: conn,
 		send: make(chan []byte, 256),
 	}
+
+	// Register this connection
+	h.mu.Lock()
+	h.allConnections[client] = true
+	h.mu.Unlock()
+
+	log.Printf("New client connected, total connections: %d", len(h.allConnections))
 
 	// Start goroutines for reading and writing
 	go h.readPump(client)
@@ -116,6 +125,15 @@ func (h *WSHandler) handleMessage(client *Client, message []byte) {
 	case models.MsgTypeWithdrawCard:
 		log.Printf("Handling withdraw_card for player %s in game %s", client.playerID, client.gameID)
 		h.handleWithdrawCard(client, msg.Payload)
+	case models.MsgTypeKickPlayer:
+		log.Printf("Handling kick_player for player %s in game %s", client.playerID, client.gameID)
+		h.handleKickPlayer(client, msg.Payload)
+	case models.MsgTypeListGames:
+		log.Printf("Handling list_games")
+		h.handleListGames(client)
+	case models.MsgTypeDeleteGame:
+		log.Printf("Handling delete_game")
+		h.handleDeleteGame(client, msg.Payload)
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)
 		h.sendError(client, "Unknown message type")
@@ -222,10 +240,16 @@ func (h *WSHandler) handleJoinGame(client *Client, payload json.RawMessage) {
 		h.games[game.ID] = make(map[string]*Client)
 	}
 	h.games[game.ID][playerID] = client
+	gameWasCreated := data.GameID == ""
 	h.mu.Unlock()
 
 	// Broadcast updated game state to all players in the game
 	h.broadcastGameState(game.ID)
+
+	// If a new game was created, broadcast updated games list to all clients
+	if gameWasCreated {
+		h.broadcastGamesList()
+	}
 
 	if isReconnection {
 		log.Printf("Player %s successfully reconnected to game %s", playerName, game.ID)
@@ -392,6 +416,130 @@ func (h *WSHandler) handleWithdrawCard(client *Client, payload json.RawMessage) 
 	log.Printf("handleWithdrawCard: Finished for player %s", client.playerID)
 }
 
+// handleKickPlayer handles kick_player messages
+func (h *WSHandler) handleKickPlayer(client *Client, payload json.RawMessage) {
+	log.Printf("handleKickPlayer: Starting for player %s", client.playerID)
+
+	var data struct {
+		PlayerID string `json:"playerId"`
+	}
+
+	if err := json.Unmarshal(payload, &data); err != nil {
+		log.Printf("handleKickPlayer: Failed to unmarshal payload: %v", err)
+		h.sendError(client, "Invalid kick_player payload")
+		return
+	}
+
+	// Get the game to check if it's in waiting phase
+	game, err := h.engine.GetGame(client.gameID)
+	if err != nil {
+		log.Printf("handleKickPlayer: Failed to get game: %v", err)
+		h.sendError(client, "Failed to get game: "+err.Error())
+		return
+	}
+
+	// Only allow kicking in waiting phase
+	if game.RoundPhase != models.PhaseWaitingForPlayers {
+		h.sendError(client, "Can only kick players before game starts")
+		return
+	}
+
+	// Send player_kicked message to the kicked player
+	h.mu.RLock()
+	if kickedClient, exists := h.clients[data.PlayerID]; exists {
+		kickMsg := models.Message{
+			Type:    models.MsgTypePlayerKicked,
+			Payload: json.RawMessage(mustMarshal(map[string]string{"message": "You have been kicked from the game"})),
+		}
+		h.sendToClient(kickedClient, kickMsg)
+	}
+	h.mu.RUnlock()
+
+	// Remove the player from the game (but don't close connection - let client handle that)
+	h.mu.Lock()
+	if gameClients, ok := h.games[client.gameID]; ok {
+		delete(gameClients, data.PlayerID)
+	}
+	if _, exists := h.clients[data.PlayerID]; exists {
+		delete(h.clients, data.PlayerID)
+	}
+	h.mu.Unlock()
+
+	// Remove player from game engine
+	if err := h.engine.RemovePlayer(client.gameID, data.PlayerID); err != nil {
+		log.Printf("handleKickPlayer: RemovePlayer failed: %v", err)
+		h.sendError(client, "Failed to kick player: "+err.Error())
+		return
+	}
+
+	log.Printf("handleKickPlayer: Player %s kicked successfully, broadcasting state", data.PlayerID)
+
+	// Broadcast updated game state
+	h.broadcastGameState(client.gameID)
+
+	log.Printf("handleKickPlayer: Finished for player %s", client.playerID)
+}
+
+// handleListGames handles list_games messages
+func (h *WSHandler) handleListGames(client *Client) {
+	games := h.engine.ListGames()
+
+	msg := models.Message{
+		Type:    models.MsgTypeListGames,
+		Payload: json.RawMessage(mustMarshal(map[string]interface{}{"games": games})),
+	}
+
+	h.sendToClient(client, msg)
+}
+
+// handleDeleteGame handles delete_game messages
+func (h *WSHandler) handleDeleteGame(client *Client, payload json.RawMessage) {
+	var data struct {
+		GameID string `json:"gameId"`
+	}
+
+	if err := json.Unmarshal(payload, &data); err != nil {
+		log.Printf("handleDeleteGame: Failed to unmarshal payload: %v", err)
+		h.sendError(client, "Invalid delete_game payload")
+		return
+	}
+
+	// Notify all players in the game that it's being deleted
+	h.mu.RLock()
+	if gameClients, ok := h.games[data.GameID]; ok {
+		deleteMsg := models.Message{
+			Type:    models.MsgTypeGameDeleted,
+			Payload: json.RawMessage(mustMarshal(map[string]string{"message": "This game has been deleted"})),
+		}
+		for _, gameClient := range gameClients {
+			h.sendToClient(gameClient, deleteMsg)
+		}
+	}
+	h.mu.RUnlock()
+
+	// Delete the game from the engine first
+	if err := h.engine.DeleteGame(data.GameID); err != nil {
+		log.Printf("handleDeleteGame: DeleteGame failed: %v", err)
+		h.sendError(client, "Failed to delete game: "+err.Error())
+		return
+	}
+
+	// Remove game from tracking (but don't close connections - let clients handle that)
+	h.mu.Lock()
+	if gameClients, ok := h.games[data.GameID]; ok {
+		for playerID := range gameClients {
+			delete(h.clients, playerID)
+		}
+		delete(h.games, data.GameID)
+	}
+	h.mu.Unlock()
+
+	log.Printf("handleDeleteGame: Game %s deleted successfully", data.GameID)
+
+	// Broadcast updated games list to all connected clients
+	h.broadcastGamesList()
+}
+
 // broadcastGameState sends the current game state to all players in a game
 func (h *WSHandler) broadcastGameState(gameID string) {
 	log.Printf("broadcastGameState: Starting for game %s", gameID)
@@ -450,6 +598,26 @@ func (h *WSHandler) broadcastGameEnd(gameID string, result *engine.GameResult) {
 	}
 
 	h.BroadcastToGame(gameID, msg)
+}
+
+// broadcastGamesList sends updated games list to all connected clients
+func (h *WSHandler) broadcastGamesList() {
+	games := h.engine.ListGames()
+
+	msg := models.Message{
+		Type:    models.MsgTypeListGames,
+		Payload: json.RawMessage(mustMarshal(map[string]interface{}{"games": games})),
+	}
+
+	// Send to all connected clients
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for client := range h.allConnections {
+		h.sendToClient(client, msg)
+	}
+
+	log.Printf("Broadcasted games list to %d clients", len(h.allConnections))
 }
 
 // buildGameState creates a game state for a specific player
@@ -517,6 +685,13 @@ func (h *WSHandler) SendToPlayer(gameID, playerID string, message models.Message
 
 // sendToClient sends a message to a client
 func (h *WSHandler) sendToClient(client *Client, message models.Message) {
+	// Recover from panic if channel is closed
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in sendToClient: %v", r)
+		}
+	}()
+
 	data, err := json.Marshal(message)
 	if err != nil {
 		log.Printf("Failed to marshal message: %v", err)
@@ -526,8 +701,8 @@ func (h *WSHandler) sendToClient(client *Client, message models.Message) {
 	select {
 	case client.send <- data:
 	default:
-		// Client's send channel is full, close the connection
-		close(client.send)
+		// Client's send channel is full or closed, skip
+		log.Printf("Failed to send to client, channel full or closed")
 	}
 }
 
@@ -543,18 +718,37 @@ func (h *WSHandler) sendError(client *Client, errorMsg string) {
 // removeClient removes a client from the handler
 func (h *WSHandler) removeClient(client *Client) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
+
+	// Remove from all connections
+	delete(h.allConnections, client)
 
 	if client.playerID != "" {
 		delete(h.clients, client.playerID)
 	}
 
+	gameToDelete := ""
 	if client.gameID != "" && client.playerID != "" {
 		if gameClients, ok := h.games[client.gameID]; ok {
 			delete(gameClients, client.playerID)
 			if len(gameClients) == 0 {
 				delete(h.games, client.gameID)
+				gameToDelete = client.gameID
 			}
+		}
+	}
+
+	log.Printf("Client disconnected, total connections: %d", len(h.allConnections))
+
+	h.mu.Unlock()
+
+	// If game has no more clients, delete it from the engine
+	if gameToDelete != "" {
+		log.Printf("All players disconnected from game %s, deleting game", gameToDelete)
+		if err := h.engine.DeleteGame(gameToDelete); err != nil {
+			log.Printf("Failed to delete empty game %s: %v", gameToDelete, err)
+		} else {
+			// Broadcast updated games list to all connected clients
+			h.broadcastGamesList()
 		}
 	}
 }
