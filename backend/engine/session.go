@@ -411,6 +411,7 @@ func (e *Engine) PassHands(gameID string) error {
 	}
 
 	// Remove selected cards from hands first
+	// Also add chopsticks back to hand if they were used
 	for _, player := range game.Players {
 		if player.SelectedCard != nil {
 			cardIndex := *player.SelectedCard
@@ -418,6 +419,24 @@ func (e *Engine) PassHands(gameID string) error {
 				// Remove the selected card from hand
 				player.Hand = append(player.Hand[:cardIndex], player.Hand[cardIndex+1:]...)
 			}
+
+			// If chopsticks were used (HasChopsticks is false and chopsticks in collection),
+			// add chopsticks card back to the hand
+			hasChopsticksInCollection := false
+			var chopsticksCard models.Card
+			for _, card := range player.Collection {
+				if card.Type == models.CardTypeChopsticks {
+					hasChopsticksInCollection = true
+					chopsticksCard = card
+					break
+				}
+			}
+
+			if hasChopsticksInCollection && !player.HasChopsticks {
+				// Chopsticks were just used, add them back to hand
+				player.Hand = append(player.Hand, chopsticksCard)
+			}
+
 			// Clear the selection
 			player.SelectedCard = nil
 		}
