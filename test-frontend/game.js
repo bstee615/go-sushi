@@ -21,6 +21,7 @@ const collectionDiv = document.getElementById('collection');
 // Log div removed from UI but keeping function for debugging
 const logDiv = { appendChild: () => {}, scrollTop: 0, scrollHeight: 0 };
 const phaseIndicator = document.getElementById('phaseIndicator');
+const handStatusMessage = document.getElementById('handStatusMessage');
 const currentGameIdDiv = document.getElementById('currentGameId');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
 const loginScreen = document.getElementById('loginScreen');
@@ -334,21 +335,20 @@ function handleRoundEnd(payload) {
 function updateHandWithSlideOut(oldHand, callback) {
     const handDiv = document.getElementById('hand');
     
-    // Find the existing cards wrapper and capture its height
+    // Find the existing cards wrapper
     const existingWrapper = Array.from(handDiv.children).find(
         child => child.style.cssText.includes('position: relative; overflow: hidden')
     );
-    const wrapperHeight = existingWrapper ? existingWrapper.offsetHeight : 200;
     
-    // Capture current total height to prevent jumping
-    const currentHeight = handDiv.offsetHeight;
-    handDiv.style.minHeight = `${currentHeight}px`;
+    if (!existingWrapper) {
+        // No wrapper found, just call callback
+        callback();
+        return;
+    }
     
-    // Save all existing UI elements before clearing
-    const existingElements = [];
-    Array.from(handDiv.children).forEach(child => {
-        existingElements.push(child.cloneNode(true));
-    });
+    // Capture wrapper height to prevent jumping
+    const wrapperHeight = existingWrapper.offsetHeight;
+    existingWrapper.style.minHeight = `${wrapperHeight}px`;
     
     // Create a temporary container with old cards
     const tempContainer = document.createElement('div');
@@ -366,26 +366,13 @@ function updateHandWithSlideOut(oldHand, callback) {
         tempContainer.appendChild(cardEl);
     });
     
-    // Clear handDiv
-    handDiv.innerHTML = '';
-    
-    // Restore all elements except the cards wrapper
-    existingElements.forEach(el => {
-        if (!el.style.cssText.includes('position: relative; overflow: hidden')) {
-            handDiv.appendChild(el);
-        }
-    });
-    
-    // Create new wrapper with fixed height to prevent jumping
-    const cardsWrapper = document.createElement('div');
-    cardsWrapper.style.cssText = `position: relative; overflow: hidden; min-height: ${wrapperHeight}px;`;
-    cardsWrapper.appendChild(tempContainer);
-    handDiv.appendChild(cardsWrapper);
+    // Replace wrapper contents with animating cards
+    existingWrapper.innerHTML = '';
+    existingWrapper.appendChild(tempContainer);
     
     // After animation completes, call callback to show new cards
     setTimeout(() => {
-        // Reset min-height to allow natural sizing
-        handDiv.style.minHeight = '';
+        existingWrapper.style.minHeight = '';
         callback();
     }, 400); // Match the slide-out animation duration
 }
@@ -729,7 +716,7 @@ function clearSelection() {
 // UI Updates
 function updatePhaseIndicator() {
     if (!gameState) {
-        phaseIndicator.textContent = '';
+        phaseIndicator.innerHTML = '';
         return;
     }
     
@@ -739,15 +726,51 @@ function updatePhaseIndicator() {
     // Calculate turn number (each round has multiple turns as hands are passed)
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
     const handSize = myPlayer?.handSize || 0;
-    const initialHandSize = gameState.phase === 'selecting' ? handSize : 0;
     
-    // Estimate turn based on cards remaining (rough approximation)
-    let turnInfo = '';
-    if (gameState.phase === 'selecting' && handSize > 0) {
-        turnInfo = ` - Turn ${11 - handSize}`;
+    // Create round dots (3 rounds total)
+    const roundDots = [];
+    for (let i = 1; i <= 3; i++) {
+        if (i < round) {
+            roundDots.push('🟢'); // Completed round
+        } else if (i === round) {
+            roundDots.push('🔵'); // Current round
+        } else {
+            roundDots.push('⚪'); // Future round
+        }
     }
     
-    phaseIndicator.textContent = `Round ${round}${turnInfo} - ${gameState.phase}`;
+    // Create turn dots (10 turns per round, based on cards remaining)
+    let turnDots = '';
+    if (gameState.phase === 'selecting' && handSize > 0) {
+        const currentTurn = 11 - handSize;
+        const turnDotsArray = [];
+        for (let i = 1; i <= 10; i++) {
+            if (i < currentTurn) {
+                turnDotsArray.push('🟢'); // Completed turn
+            } else if (i === currentTurn) {
+                turnDotsArray.push('🔵'); // Current turn
+            } else {
+                turnDotsArray.push('⚪'); // Future turn
+            }
+        }
+        turnDots = ` | ${turnDotsArray.join('')}`;
+    }
+    
+    phaseIndicator.innerHTML = `${roundDots.join('')}${turnDots}`;
+}
+
+function updateStatusMessage(text, bgColor = '#e3f2fd', textColor = '#1565c0') {
+    if (!handStatusMessage) return;
+    
+    if (text) {
+        handStatusMessage.textContent = text;
+        handStatusMessage.style.background = bgColor;
+        handStatusMessage.style.color = textColor;
+        handStatusMessage.style.visibility = 'visible';
+    } else {
+        handStatusMessage.textContent = '';
+        handStatusMessage.style.visibility = 'hidden';
+    }
 }
 
 function updateHand(animationType = null) {
@@ -776,18 +799,28 @@ function updateHand(animationType = null) {
     const canUseChopsticks = myPlayer?.has_chopsticks !== undefined ? myPlayer.has_chopsticks : hasChopsticksInCollection;
     const hasSelected = myPlayer?.hasSelected;
     
-    // If player has already selected, show waiting indicator separately
+    // Update status message based on game state
     if (hasSelected && gameState.phase === 'selecting') {
-        const waitingDiv = document.createElement('div');
-        waitingDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;';
-        waitingDiv.innerHTML = `
-            <div style="font-size: 16px; font-weight: bold;">⏳ Waiting for other players...</div>
-        `;
-        
-        handDiv.appendChild(waitingDiv);
+        updateStatusMessage('⏳ Waiting for other players...', '#fff3cd', '#856404');
+    } else if (gameState.phase === 'selecting' && !hasSelected) {
+        if (chopsticksMode) {
+            if (selectedCardIndex === null) {
+                updateStatusMessage('📌 Select your first card (click to deselect)', '#e3f2fd', '#1565c0');
+            } else if (secondCardIndex === null) {
+                updateStatusMessage('📌 Select your second card (auto-submits when both selected)', '#e3f2fd', '#1565c0');
+            } else {
+                updateStatusMessage('✓ Both cards selected - submitting...', '#4caf50', 'white');
+            }
+        } else if (selectedCardIndex !== null) {
+            updateStatusMessage('👆 Click selected card to withdraw', '#fff3cd', '#856404');
+        } else {
+            updateStatusMessage('👆 Click a card to play it', '#e3f2fd', '#1565c0');
+        }
+    } else {
+        updateStatusMessage(''); // Hide when not in selecting phase
     }
     
-    // Show chopsticks toggle and controls (only if chopsticks are available to use)
+    // Show chopsticks toggle button (only if chopsticks are available to use)
     if (canUseChopsticks && gameState.phase === 'selecting' && !hasSelected) {
         const controlsDiv = document.createElement('div');
         controlsDiv.style.cssText = 'background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 15px;';
@@ -803,27 +836,9 @@ function updateHand(animationType = null) {
             border-radius: 5px;
             cursor: pointer;
             font-weight: 600;
-            margin-right: 10px;
         `;
         
         controlsDiv.appendChild(toggleBtn);
-        
-        // Show status message
-        const statusDiv = document.createElement('div');
-        statusDiv.style.cssText = 'margin-top: 8px; font-size: 14px; color: #666;';
-        if (chopsticksMode) {
-            if (selectedCardIndex === null) {
-                statusDiv.textContent = '📌 Select your first card (click to deselect)';
-            } else if (secondCardIndex === null) {
-                statusDiv.textContent = '📌 Select your second card (auto-submits when both selected)';
-            } else {
-                statusDiv.textContent = '✓ Both cards selected - submitting...';
-            }
-        } else {
-            statusDiv.textContent = '📌 Click a card to play it immediately';
-        }
-        controlsDiv.appendChild(statusDiv);
-        
         handDiv.appendChild(controlsDiv);
     }
     
