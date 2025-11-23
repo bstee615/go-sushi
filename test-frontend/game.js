@@ -665,9 +665,11 @@ function updatePlayersList() {
         const isMe = player.id === myPlayerId;
         const selectedIndicator = player.hasSelected ? '✓' : '○';
         
-        // Calculate maki count for this player
+        // Count card types for this player
         let makiCount = 0;
         let dumplingCount = 0;
+        let tempuraCount = 0;
+        let sashimiCount = 0;
         if (player.collection) {
             player.collection.forEach(card => {
                 if (card.type === 'maki_roll') {
@@ -676,16 +678,30 @@ function updatePlayersList() {
                 if (card.type === 'dumpling') {
                     dumplingCount++;
                 }
+                if (card.type === 'tempura') {
+                    tempuraCount++;
+                }
+                if (card.type === 'sashimi') {
+                    sashimiCount++;
+                }
             });
         }
         
         // Count pudding cards
         const puddingCount = player.puddingCards ? player.puddingCards.length : 0;
         
+        // Build stats string with all relevant indicators
+        let statsStr = `Score: ${player.score} | Hand: ${player.handSize} cards`;
+        if (makiCount > 0) statsStr += ` | 🍣 Maki: ${makiCount}`;
+        if (tempuraCount > 0) statsStr += ` | 🍤 Tempura: ${tempuraCount}`;
+        if (sashimiCount > 0) statsStr += ` | 🐟 Sashimi: ${sashimiCount}`;
+        if (dumplingCount > 0) statsStr += ` | 🥟 Dumpling: ${dumplingCount}`;
+        if (puddingCount > 0) statsStr += ` | 🍮 Pudding: ${puddingCount}`;
+        
         li.innerHTML = `
             <div class="player-name">${player.name}${isMe ? ' (You)' : ''} ${selectedIndicator}</div>
             <div class="player-stats">
-                Score: ${player.score} | Hand: ${player.handSize} cards${makiCount > 0 ? ` | 🍣 Maki: ${makiCount}` : ''}${dumplingCount > 0 ? ` | 🥟 Dumpling: ${dumplingCount}` : ''}${puddingCount > 0 ? ` | 🍮 Pudding: ${puddingCount}` : ''}
+                ${statsStr}
             </div>
             <div class="collection">
                 ${player.collection && player.collection.length > 0 ? player.collection.map(card => 
