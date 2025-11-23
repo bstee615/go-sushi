@@ -143,16 +143,34 @@ function handleGameState(payload) {
     
     // Determine if this is a new deal (start of round) or turn transition (hand passed)
     let animationType = null;
+    let needsSlideOut = false;
+    
     if (currentRound !== previousRound && currentRound > 0) {
         // New round - deal animation
         animationType = 'deal';
         isFirstDeal = false;
     } else if (previousHandSize > 0 && currentHandSize > 0 && currentHandSize !== previousHandSize) {
-        // Hand passed - turn animation
+        // Hand passed - turn animation with slide out first
         animationType = 'turn';
+        needsSlideOut = true;
     } else if (currentHandSize > 0 && previousHandSize === 0 && !isFirstDeal) {
         // First hand of a new round
         animationType = 'deal';
+    }
+    
+    // If we need to slide out old cards first, do that before updating state
+    if (needsSlideOut && previousHand && previousHand.length > 0) {
+        // Show slide-out animation with old hand
+        updateHandWithSlideOut(previousHand, () => {
+            // After slide-out completes, update state and show new cards
+            previousHandSize = currentHandSize;
+            previousRound = currentRound;
+            gameState = payload;
+            
+            // Continue with normal state update
+            continueStateUpdate(payload, animationType);
+        });
+        return; // Exit early, will continue after animation
     }
     
     // Update tracking variables
@@ -160,6 +178,17 @@ function handleGameState(payload) {
     previousRound = currentRound;
     
     gameState = payload;
+    
+    // Continue with normal state update
+    continueStateUpdate(payload, animationType);
+}
+
+function continueStateUpdate(payload, animationType) {
+    
+    const previousHand = gameState?.myHand;
+    const newHand = payload.myHand;
+    const previousSelected = gameState?.players?.find(p => p.id === myPlayerId)?.hasSelected;
+    const currentSelected = payload.players?.find(p => p.id === myPlayerId)?.hasSelected;
     
     // Get my player ID from the payload
     if (payload.myPlayerId) {
@@ -212,6 +241,36 @@ function handleGameState(payload) {
     } else {
         startBtn.disabled = true;
     }
+}
+
+// Helper function to show slide-out animation before updating to new cards
+function updateHandWithSlideOut(oldHand, callback) {
+    const handDiv = document.getElementById('hand');
+    
+    // Create a temporary container with old cards
+    const tempContainer = document.createElement('div');
+    tempContainer.className = 'hand turn-out-animation';
+    
+    // Render old cards
+    oldHand.forEach((card) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card';
+        cardEl.innerHTML = `
+            <div class="card-type">${formatCardType(card.type)}</div>
+            ${card.variant ? `<div class="card-variant">${card.variant}</div>` : ''}
+            ${card.value ? `<div class="card-variant">Value: ${card.value}</div>` : ''}
+        `;
+        tempContainer.appendChild(cardEl);
+    });
+    
+    // Clear and add temp container
+    handDiv.innerHTML = '';
+    handDiv.appendChild(tempContainer);
+    
+    // After animation completes, call callback to show new cards
+    setTimeout(() => {
+        callback();
+    }, 400); // Match the slide-out animation duration
 }
 
 // Game actions

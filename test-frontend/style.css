@@ -185,12 +185,27 @@ button:disabled {
     }
 }
 
+@keyframes slideGroupToRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
 .hand.deal-animation {
     animation: slideGroupFromTop 0.6s ease-out forwards;
 }
 
 .hand.turn-animation {
     animation: slideGroupFromLeft 0.6s ease-out forwards;
+}
+
+.hand.turn-out-animation {
+    animation: slideGroupToRight 0.4s ease-in forwards;
 }
 
 /* Edge fade effect */
@@ -218,6 +233,19 @@ button:disabled {
     pointer-events: none;
     z-index: 10;
     animation: fadeOut 0.6s ease-out forwards;
+}
+
+.hand.turn-out-animation::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50px;
+    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+    pointer-events: none;
+    z-index: 10;
+    animation: fadeOut 0.4s ease-in forwards;
 }
 
 @keyframes fadeOut {
