@@ -8,6 +8,7 @@ let chopsticksMode = false;
 let previousHandSize = 0;
 let previousRound = 0;
 let isFirstDeal = true;
+let isAnimating = false;
 
 // UI Elements
 const connectionStatus = document.getElementById('connectionStatus');
@@ -275,6 +276,11 @@ function toggleChopsticks() {
 function selectCard(index) {
     if (!gameState || gameState.phase !== 'selecting') {
         log('Cannot select card: not in selection phase', 'error');
+        return;
+    }
+    
+    // Prevent selection during animations
+    if (isAnimating) {
         return;
     }
     
@@ -645,8 +651,10 @@ function updateHand(animationType = null) {
     
     // Remove animation class after animation completes to allow re-triggering
     if (animationType) {
+        isAnimating = true;
         setTimeout(() => {
             cardsContainer.classList.remove('deal-animation', 'turn-animation');
+            isAnimating = false;
         }, 600); // Match animation duration
     }
 }
