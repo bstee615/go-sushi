@@ -221,6 +221,19 @@ function handleGameState(payload) {
         animationType = 'deal';
     }
     
+    // Clear selections when hand changes (before any animations)
+    if (previousHand && newHand && JSON.stringify(previousHand) !== JSON.stringify(newHand)) {
+        selectedCardIndex = null;
+        secondCardIndex = null;
+        chopsticksMode = false;
+    }
+    
+    // If player withdrew their card (was selected, now not selected), clear UI selection
+    if (previousSelected && !currentSelected) {
+        selectedCardIndex = null;
+        secondCardIndex = null;
+    }
+    
     // If we need to slide out old cards first, do that before updating state
     if (needsSlideOut && previousHand && previousHand.length > 0) {
         // Show slide-out animation with old hand
@@ -247,12 +260,6 @@ function handleGameState(payload) {
 }
 
 function continueStateUpdate(payload, animationType) {
-    
-    const previousHand = gameState?.myHand;
-    const newHand = payload.myHand;
-    const previousSelected = gameState?.players?.find(p => p.id === myPlayerId)?.hasSelected;
-    const currentSelected = payload.players?.find(p => p.id === myPlayerId)?.hasSelected;
-    
     // Get my player ID from the payload
     if (payload.myPlayerId) {
         myPlayerId = payload.myPlayerId;
@@ -274,19 +281,6 @@ function continueStateUpdate(payload, animationType) {
         document.getElementById('gameId').value = payload.gameId;
         gameIdDisplay.textContent = payload.gameId;
         currentGameIdDiv.style.display = 'block';
-    }
-    
-    // Reset selected card index if hand has changed
-    if (previousHand && newHand && JSON.stringify(previousHand) !== JSON.stringify(newHand)) {
-        selectedCardIndex = null;
-        secondCardIndex = null;
-        chopsticksMode = false;
-    }
-    
-    // If player withdrew their card (was selected, now not selected), clear UI selection
-    if (previousSelected && !currentSelected) {
-        selectedCardIndex = null;
-        secondCardIndex = null;
     }
     
     // Update UI with animation type
