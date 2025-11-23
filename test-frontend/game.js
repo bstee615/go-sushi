@@ -95,7 +95,10 @@ function connect() {
 }
 
 function logout() {
-    // Don't close WebSocket connection - keep it alive
+    // Send leave_game message to server
+    if (gameState && gameState.gameId) {
+        sendMessage('leave_game', {});
+    }
     
     // Reset game state
     gameState = null;
@@ -122,6 +125,9 @@ function logout() {
         handDiv.innerHTML = '';
         playersListDiv.innerHTML = '';
         collectionDiv.innerHTML = '';
+        
+        // Refresh games list
+        requestGamesList();
     }, 300);
     
     log('Logged out', 'info');

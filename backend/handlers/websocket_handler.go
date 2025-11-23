@@ -129,6 +129,9 @@ func (h *WSHandler) handleMessage(client *Client, message []byte) {
 	case models.MsgTypeKickPlayer:
 		log.Printf("Handling kick_player for player %s in game %s", client.playerID, client.gameID)
 		h.handleKickPlayer(client, msg.Payload)
+	case models.MsgTypeLeaveGame:
+		log.Printf("Handling leave_game for player %s in game %s", client.playerID, client.gameID)
+		h.handleLeaveGame(client)
 	case models.MsgTypeListGames:
 		log.Printf("Handling list_games")
 		h.handleListGames(client)
@@ -433,6 +436,54 @@ func (h *WSHandler) handleWithdrawCard(client *Client, payload json.RawMessage) 
 	h.broadcastGameState(client.gameID)
 
 	log.Printf("handleWithdrawCard: Finished for player %s", client.playerID)
+}
+
+// handleLeaveGame handles leave_game messages
+func (h *WSHandler) handleLeaveGame(client *Client) {
+	if client.gameID == "" {
+		h.sendError(client, "Not in a game")
+		return
+	}
+
+	gameID := client.gameID
+	playerID := client.playerID
+
+	// Remove player from game
+	if err := h.engine.RemovePlayer(gameID, playerID); err != nil {
+		log.Printf("Failed to remove player from game: %v", err)
+		// Continue anyway to clean up client state
+	}
+
+	// Remove client from game mapping
+	h.mu.Lock()
+	if gameClients, ok := h.games[gameID]; ok {
+		delete(gameClients, playerID)
+
+		// If no more clients in game, delete it
+		if len(gameClients) == 0 {
+			delete(h.games, gameID)
+			h.mu.Unlock()
+
+			log.Printf("All players left game %s, deleting game", gameID)
+			if err := h.engine.DeleteGame(gameID); err != nil {
+				log.Printf("Failed to delete empty game %s: %v", gameID, err)
+			}
+
+			// Broadcast updated games list
+			h.broadcastGamesList()
+		} else {
+			h.mu.Unlock()
+			// Broadcast updated game state to remaining players
+			h.broadcastGameState(gameID)
+		}
+	} else {
+		h.mu.Unlock()
+	}
+
+	// Clear client's game association
+	client.gameID = ""
+
+	log.Printf("Player %s left game %s", playerID, gameID)
 }
 
 // handleKickPlayer handles kick_player messages

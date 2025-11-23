@@ -11,6 +11,7 @@ const (
 	MsgTypeSelectCard   MessageType = "select_card"
 	MsgTypeWithdrawCard MessageType = "withdraw_card"
 	MsgTypeKickPlayer   MessageType = "kick_player"
+	MsgTypeLeaveGame    MessageType = "leave_game"
 	MsgTypeListGames    MessageType = "list_games"
 	MsgTypeDeleteGame   MessageType = "delete_game"
 	MsgTypeGameDeleted  MessageType = "game_deleted"
