@@ -5,7 +5,6 @@ export interface GameState {
   myPlayerId?: string;
   phase?: string;
   currentRound?: number;
-  current_round?: number;
   players?: Player[];
   myHand?: Card[];
 }
@@ -39,6 +38,9 @@ class WebSocketStore {
   public gameState = writable<GameState | null>(null);
   public error = writable<string | null>(null);
   private messageHandlers: Map<string, (payload: any) => void> = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 10;
+  private reconnectDelay = 1000; // Start with 1 second
 
   connect(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -49,6 +51,8 @@ class WebSocketStore {
           console.log('Connected to server');
           this.connected.set(true);
           this.error.set(null);
+          this.reconnectAttempts = 0; // Reset on successful connection
+          this.reconnectDelay = 1000;
           resolve();
         };
 
@@ -56,12 +60,17 @@ class WebSocketStore {
           console.log('Disconnected from server');
           this.connected.set(false);
           
-          // Try to reconnect after 2 seconds
-          setTimeout(() => {
-            if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-              this.connect(url);
-            }
-          }, 2000);
+          // Exponential backoff for reconnection
+          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000);
+            this.reconnectAttempts++;
+            
+            setTimeout(() => {
+              if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+                this.connect(url);
+              }
+            }, delay);
+          }
         };
 
         this.ws.onerror = (error) => {

@@ -148,12 +148,12 @@
           {:else}
             <!-- Round and Turn Indicators -->
             <div class="flex gap-3 mb-4 flex-wrap">
-              {#if (gameState?.currentRound || gameState?.current_round || 0) > 0}
+              {#if (gameState?.currentRound || 0) > 0}
                 <div class="bg-gray-100 px-4 py-2 rounded-md flex flex-col items-center min-w-[120px]">
                   <div class="text-xs font-semibold text-gray-600 mb-1">ROUND</div>
                   <div class="flex gap-1">
                     {#each [1, 2, 3] as round}
-                      <span class="text-lg font-bold {round === (gameState?.currentRound || gameState?.current_round) ? 'text-blue-500' : round < (gameState?.currentRound || gameState?.current_round || 0) ? 'text-green-500' : 'text-gray-400'}">
+                      <span class="text-lg font-bold {round === gameState?.currentRound ? 'text-blue-500' : round < (gameState?.currentRound || 0) ? 'text-green-500' : 'text-gray-400'}">
                         {round}
                       </span>
                     {/each}
