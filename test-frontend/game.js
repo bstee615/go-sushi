@@ -334,6 +334,22 @@ function handleRoundEnd(payload) {
 function updateHandWithSlideOut(oldHand, callback) {
     const handDiv = document.getElementById('hand');
     
+    // Find the existing cards wrapper and capture its height
+    const existingWrapper = Array.from(handDiv.children).find(
+        child => child.style.cssText.includes('position: relative; overflow: hidden')
+    );
+    const wrapperHeight = existingWrapper ? existingWrapper.offsetHeight : 200;
+    
+    // Capture current total height to prevent jumping
+    const currentHeight = handDiv.offsetHeight;
+    handDiv.style.minHeight = `${currentHeight}px`;
+    
+    // Save all existing UI elements before clearing
+    const existingElements = [];
+    Array.from(handDiv.children).forEach(child => {
+        existingElements.push(child.cloneNode(true));
+    });
+    
     // Create a temporary container with old cards
     const tempContainer = document.createElement('div');
     tempContainer.className = 'hand turn-out-animation';
@@ -350,12 +366,26 @@ function updateHandWithSlideOut(oldHand, callback) {
         tempContainer.appendChild(cardEl);
     });
     
-    // Clear and add temp container
+    // Clear handDiv
     handDiv.innerHTML = '';
-    handDiv.appendChild(tempContainer);
+    
+    // Restore all elements except the cards wrapper
+    existingElements.forEach(el => {
+        if (!el.style.cssText.includes('position: relative; overflow: hidden')) {
+            handDiv.appendChild(el);
+        }
+    });
+    
+    // Create new wrapper with fixed height to prevent jumping
+    const cardsWrapper = document.createElement('div');
+    cardsWrapper.style.cssText = `position: relative; overflow: hidden; min-height: ${wrapperHeight}px;`;
+    cardsWrapper.appendChild(tempContainer);
+    handDiv.appendChild(cardsWrapper);
     
     // After animation completes, call callback to show new cards
     setTimeout(() => {
+        // Reset min-height to allow natural sizing
+        handDiv.style.minHeight = '';
         callback();
     }, 400); // Match the slide-out animation duration
 }
