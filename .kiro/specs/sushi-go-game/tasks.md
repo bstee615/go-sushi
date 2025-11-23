@@ -58,6 +58,33 @@
   - Add game start logic (minimum 2 players)
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
+- [ ] 4.0 Implement random game ID generator
+  - Create lists of Japanese regions and flowers
+  - Implement game ID generation in format region-flower-number
+  - Ensure generated IDs are unique within active games
+  - _Requirements: 21.1, 21.2, 21.3_
+
+- [ ] 4.0.1 Write property test for game ID format
+
+  - **Property 18: Game ID format is consistent**
+  - **Validates: Requirements 21.1, 21.2, 21.3**
+
+- [ ] 4.0.2 Implement random player name generator
+  - Create lists of famous sushi chefs, pop culture characters, and historical figures
+  - Implement random name selection when player joins without a name
+  - _Requirements: 21.4, 21.5_
+
+- [ ] 4.0.3 Implement player reconnection by username
+  - Add username matching logic in join game flow
+  - Restore existing player state when username matches
+  - Update connection status for reconnected players
+  - Broadcast reconnection notification to other players
+  - _Requirements: 22.1, 22.2, 22.3, 22.4, 22.5_
+
+- [ ] 4.0.4 Write property test for player reconnection
+
+  - **Property 19: Player reconnection preserves state**
+  - **Validates: Requirements 22.1, 22.2, 22.4**
 
 - [x] 4.1 Write property tests for game session management
 

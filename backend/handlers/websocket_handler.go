@@ -134,15 +134,20 @@ func (h *WSHandler) handleJoinGame(client *Client, payload json.RawMessage) {
 		return
 	}
 
-	// Generate player ID
-	playerID := engine.GenerateRandomID()
-	client.playerID = playerID
+	// Generate random player name if not provided
+	playerName := data.PlayerName
+	if playerName == "" {
+		playerName = engine.GeneratePlayerName()
+	}
 
 	var game *models.Game
 	var err error
+	var playerID string
+	var isReconnection bool
 
 	if data.GameID == "" {
 		// Create new game
+		playerID = engine.GenerateRandomID()
 		game, err = h.engine.CreateGame([]string{playerID})
 		if err != nil {
 			h.sendError(client, "Failed to create game: "+err.Error())
@@ -151,35 +156,67 @@ func (h *WSHandler) handleJoinGame(client *Client, payload json.RawMessage) {
 
 		// Set player name
 		if len(game.Players) > 0 {
-			game.Players[0].Name = data.PlayerName
+			game.Players[0].Name = playerName
 		}
 	} else {
-		// Join existing game
-		err = h.engine.JoinGame(data.GameID, playerID)
-		if err != nil {
-			h.sendError(client, "Failed to join game: "+err.Error())
-			return
-		}
-
+		// Try to join existing game
 		game, err = h.engine.GetGame(data.GameID)
 		if err != nil {
 			h.sendError(client, "Failed to get game: "+err.Error())
 			return
 		}
 
-		// Set player name
+		// Check if player with this name already exists (reconnection)
+		var existingPlayer *models.Player
 		for _, player := range game.Players {
-			if player.ID == playerID {
-				player.Name = data.PlayerName
+			if player.Name == playerName {
+				existingPlayer = player
 				break
+			}
+		}
+
+		if existingPlayer != nil {
+			// Reconnection: use existing player ID
+			playerID = existingPlayer.ID
+			isReconnection = true
+			log.Printf("Player %s reconnecting to game %s", playerName, data.GameID)
+		} else {
+			// New player joining
+			playerID = engine.GenerateRandomID()
+			err = h.engine.JoinGame(data.GameID, playerID)
+			if err != nil {
+				h.sendError(client, "Failed to join game: "+err.Error())
+				return
+			}
+
+			// Refresh game state
+			game, err = h.engine.GetGame(data.GameID)
+			if err != nil {
+				h.sendError(client, "Failed to get game: "+err.Error())
+				return
+			}
+
+			// Set player name
+			for _, player := range game.Players {
+				if player.ID == playerID {
+					player.Name = playerName
+					break
+				}
 			}
 		}
 	}
 
+	client.playerID = playerID
 	client.gameID = game.ID
 
 	// Register client
 	h.mu.Lock()
+	// Remove old client connection if reconnecting
+	if isReconnection {
+		if oldClient, exists := h.clients[playerID]; exists {
+			close(oldClient.send)
+		}
+	}
 	h.clients[playerID] = client
 	if h.games[game.ID] == nil {
 		h.games[game.ID] = make(map[string]*Client)
@@ -189,6 +226,10 @@ func (h *WSHandler) handleJoinGame(client *Client, payload json.RawMessage) {
 
 	// Broadcast updated game state to all players in the game
 	h.broadcastGameState(game.ID)
+
+	if isReconnection {
+		log.Printf("Player %s successfully reconnected to game %s", playerName, game.ID)
+	}
 }
 
 // handleStartGame handles start_game messages

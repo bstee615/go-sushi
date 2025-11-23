@@ -164,6 +164,17 @@ function handleGameState(payload) {
     // Get my player ID from the payload
     if (payload.myPlayerId) {
         myPlayerId = payload.myPlayerId;
+        
+        // Update player name in the UI if it was randomly generated
+        const myPlayer = payload.players?.find(p => p.id === myPlayerId);
+        if (myPlayer && myPlayer.name) {
+            const playerNameInput = document.getElementById('playerName');
+            // Only update if the input is empty (meaning it was randomly generated)
+            if (!playerNameInput.value || playerNameInput.value === '') {
+                playerNameInput.value = myPlayer.name;
+                log(`Your name: ${myPlayer.name}`, 'info');
+            }
+        }
     }
     
     // Update game ID display
@@ -207,12 +218,12 @@ function handleGameState(payload) {
 function createGame() {
     const playerName = document.getElementById('playerName').value;
     
-    if (!playerName) {
-        log('Please enter a player name', 'error');
-        return;
+    // Player name is now optional - backend will generate one if empty
+    if (playerName) {
+        log(`Creating new game as ${playerName}...`, 'info');
+    } else {
+        log('Creating new game with random name...', 'info');
     }
-    
-    log('Creating new game...', 'info');
     
     // Send join_game with empty gameId to create a new game
     sendMessage('join_game', {
@@ -225,17 +236,17 @@ function joinGame() {
     const playerName = document.getElementById('playerName').value;
     const gameId = document.getElementById('gameId').value;
     
-    if (!playerName) {
-        log('Please enter a player name', 'error');
-        return;
-    }
-    
     if (!gameId) {
         log('Please enter a game ID to join, or click "Create New Game"', 'error');
         return;
     }
     
-    log(`Joining game ${gameId}...`, 'info');
+    // Player name is now optional - backend will generate one if empty
+    if (playerName) {
+        log(`Joining game ${gameId} as ${playerName}...`, 'info');
+    } else {
+        log(`Joining game ${gameId} with random name...`, 'info');
+    }
     
     sendMessage('join_game', {
         gameId: gameId,

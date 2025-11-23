@@ -443,6 +443,124 @@ type RoundPhase =
 *For any* completed game, given the same final scores and Pudding counts, the winner determination should always produce the same result.
 **Validates: Requirements 17.1, 17.2, 17.3**
 
+### Property 18: Game ID format is consistent
+*For any* generated game ID, it should match the format region-flower-number where region and flower are from predefined lists of Japanese regions and flowers.
+**Validates: Requirements 21.1, 21.2, 21.3**
+
+### Property 19: Player reconnection preserves state
+*For any* player who reconnects to a game using their existing username, their complete game state (hand, collection, score, round progress) should be identical to their state before disconnection.
+**Validates: Requirements 22.1, 22.2, 22.4**
+
+## Random ID and Name Generation
+
+### Game ID Generator
+
+The system will generate memorable game IDs using the format: `region-flower-number`
+
+**Japanese Regions:**
+- Tokyo
+- Kyoto
+- Osaka
+- Hokkaido
+- Okinawa
+- Nara
+- Hiroshima
+- Fukuoka
+- Nagoya
+- Sapporo
+
+**Japanese Flowers:**
+- Sakura (Cherry Blossom)
+- Ume (Plum Blossom)
+- Tsubaki (Camellia)
+- Ajisai (Hydrangea)
+- Kiku (Chrysanthemum)
+- Fuji (Wisteria)
+- Botan (Peony)
+- Ayame (Iris)
+- Momiji (Maple)
+- Hasu (Lotus)
+
+**Number Range:** 1-999
+
+**Example Game IDs:**
+- tokyo-sakura-42
+- kyoto-ume-157
+- osaka-kiku-888
+
+### Player Name Generator
+
+When a player joins without providing a name, the system will assign a random name from these categories:
+
+**Famous Sushi Chefs:**
+- Jiro Ono
+- Masahiro Yoshitake
+- Takashi Saito
+- Hachiro Mizutani
+- Keiji Nakazawa
+
+**Pop Culture/Anime Characters:**
+- Naruto
+- Totoro
+- Goku
+- Pikachu
+- Luffy
+- Sailor Moon
+- Doraemon
+- Saitama
+- Spike
+- Ghibli
+
+**Historical Figures:**
+- Miyamoto Musashi
+- Oda Nobunaga
+- Tokugawa Ieyasu
+- Minamoto Yoritomo
+- Himiko
+
+## Player Reconnection System
+
+### Reconnection Logic
+
+The system will support player reconnection by username within the same game session:
+
+1. **Username Matching:** When a player joins a game, the backend checks if a player with that username already exists in the game
+2. **State Restoration:** If a match is found, the player is reconnected to their existing player state instead of creating a new player
+3. **WebSocket Update:** The new WebSocket connection is associated with the existing player ID
+4. **State Broadcast:** Other players are notified of the reconnection
+5. **Game Isolation:** Username matching only applies within the same game - the same username can exist in different games as different players
+
+### Data Model Updates
+
+```go
+type Player struct {
+    ID              string
+    Name            string  // Used for reconnection matching
+    Hand            []Card
+    Collection      []Card
+    PuddingCards    []Card
+    Score           int
+    RoundScores     []int
+    HasChopsticks   bool
+    SelectedCard    *int
+    Connected       bool    // Track connection status
+}
+```
+
+### Reconnection Flow
+
+```
+1. Player joins game with username "Jiro Ono"
+2. Backend checks if "Jiro Ono" exists in game
+3. If exists:
+   - Load existing player state
+   - Update connection status
+   - Send full game state to reconnected player
+   - Broadcast reconnection to other players
+4. If not exists:
+   - Create new player with that username
+```
+
 ## Error Handling
 
 ### Backend Error Handling

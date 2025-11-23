@@ -246,3 +246,27 @@ This document specifies the requirements for implementing Sushi Go!, a fast-pace
 2. WHEN a serialized game state is provided, THEN the Backend Server SHALL restore the game to that exact state
 3. WHEN serializing game state, THEN the Backend Server SHALL include all player hands, collections, scores, and round information
 4. WHEN deserializing game state, THEN the Backend Server SHALL validate the state before restoring
+
+### Requirement 21
+
+**User Story:** As a player, I want the system to automatically generate memorable game IDs and player names, so that I can easily share and remember game sessions.
+
+#### Acceptance Criteria
+
+1. WHEN a new game session is created, THEN the Backend Server SHALL generate a game identifier in the format region-flower-number using famous Japanese regions and flowers
+2. WHEN a game identifier is generated, THEN the Backend Server SHALL use recognizable Japanese region names such as Tokyo, Kyoto, Osaka, Hokkaido, or Okinawa
+3. WHEN a game identifier is generated, THEN the Backend Server SHALL use recognizable Japanese flower names such as Sakura, Ume, Tsubaki, Ajisai, or Kiku
+4. WHEN a player joins without providing a name, THEN the Backend Server SHALL assign a random name from famous sushi chefs, historical figures, or pop culture characters
+5. WHEN a random player name is generated, THEN the Backend Server SHALL select from recognizable names such as Jiro Ono, Naruto, Totoro, Miyamoto Musashi, or other highly famous figures
+
+### Requirement 22
+
+**User Story:** As a player, I want to reconnect to my game session using my username, so that I can resume playing if I get disconnected.
+
+#### Acceptance Criteria
+
+1. WHEN a player joins a game with a username that already exists in that game, THEN the Backend Server SHALL load the player into their existing player state
+2. WHEN a player reconnects using their username, THEN the Backend Server SHALL restore their hand, collection, score, and all game progress
+3. WHEN a player reconnects, THEN the Backend Server SHALL notify other players that the player has reconnected
+4. WHEN a player reconnects, THEN the Frontend Client SHALL display the current game state with all their cards and progress intact
+5. WHEN a player attempts to join with a username that exists in a different game, THEN the Backend Server SHALL treat them as a new player in the new game

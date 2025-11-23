@@ -166,7 +166,7 @@ func (e *Engine) GetGame(gameID string) (*models.Game, error) {
 // generateUniqueGameID generates a unique game identifier
 func (e *Engine) generateUniqueGameID() string {
 	for {
-		id := generateRandomID()
+		id := GenerateGameID()
 		if _, exists := e.games[id]; !exists {
 			return id
 		}

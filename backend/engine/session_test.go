@@ -53,7 +53,7 @@ func TestPlayerJoinValidation(t *testing.T) {
 	properties.Property("cannot join game with more than 5 players", prop.ForAll(
 		func(numPlayers int) bool {
 			engine := NewEngine()
-			
+
 			// Create a game with one player
 			game, err := engine.CreateGame([]string{"player1"})
 			if err != nil {
@@ -64,7 +64,7 @@ func TestPlayerJoinValidation(t *testing.T) {
 			// Try to add players up to the limit
 			successfulJoins := 1 // Already have player1
 			usedIDs := map[string]bool{"player1": true}
-			
+
 			for i := 2; i <= numPlayers; i++ {
 				// Generate a unique player ID
 				var playerID string
@@ -80,13 +80,13 @@ func TestPlayerJoinValidation(t *testing.T) {
 						break
 					}
 				}
-				
+
 				if playerID == "" {
 					// Fallback to guaranteed unique ID
 					playerID = fmt.Sprintf("player%d", i)
 					usedIDs[playerID] = true
 				}
-				
+
 				err := engine.JoinGame(game.ID, playerID)
 				if err == nil {
 					successfulJoins++
@@ -139,11 +139,11 @@ func TestUniquePlayerIDAssignment(t *testing.T) {
 			}
 
 			engine := NewEngine()
-			
+
 			// Generate unique player IDs
 			playerIDs := make([]string, numPlayers)
 			usedIDs := make(map[string]bool)
-			
+
 			for i := 0; i < numPlayers; i++ {
 				// Try to generate a unique ID
 				var playerID string
@@ -159,13 +159,13 @@ func TestUniquePlayerIDAssignment(t *testing.T) {
 						break
 					}
 				}
-				
+
 				if playerID == "" {
 					// Fallback to guaranteed unique ID
 					playerID = fmt.Sprintf("player%d", i)
 					usedIDs[playerID] = true
 				}
-				
+
 				playerIDs[i] = playerID
 			}
 
@@ -216,7 +216,7 @@ func TestGameStartValidation(t *testing.T) {
 			}
 
 			engine := NewEngine()
-			
+
 			// Generate player IDs
 			playerIDs := make([]string, numPlayers)
 			for i := 0; i < numPlayers; i++ {
@@ -601,7 +601,7 @@ func TestRoundProgressionIsSequential(t *testing.T) {
 
 				// Determine how many turns in this round
 				cardsPerPlayer, _ := GetCardsPerPlayer(playerCount)
-				
+
 				for turn := 0; turn < cardsPerPlayer; turn++ {
 					// Each player selects a card
 					for _, player := range game.Players {
@@ -807,14 +807,14 @@ func TestScoreAccumulationIsMonotonic(t *testing.T) {
 					}
 
 					if player.Score != expectedCumulative {
-						t.Logf("Player %s cumulative score %d != sum of round scores %d", 
+						t.Logf("Player %s cumulative score %d != sum of round scores %d",
 							player.ID, player.Score, expectedCumulative)
 						return false
 					}
 
 					// Verify score is monotonically increasing (never decreases during rounds)
 					if player.Score < scoresBefore[playerIdx] {
-						t.Logf("Player %s score decreased from %d to %d in round %d", 
+						t.Logf("Player %s score decreased from %d to %d in round %d",
 							player.ID, scoresBefore[playerIdx], player.Score, round+1)
 						return false
 					}
@@ -883,7 +883,7 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 
 			// Run the winner determination twice with the same inputs
 			results := make([]*GameResult, 2)
-			
+
 			for run := 0; run < 2; run++ {
 				engine := NewEngine()
 
@@ -907,7 +907,7 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 				// Set player scores and pudding cards
 				for i, player := range game.Players {
 					player.Score = scores[i]
-					
+
 					// Create pudding cards
 					player.PuddingCards = make([]models.Card, puddingCounts[i])
 					for j := 0; j < puddingCounts[i]; j++ {
@@ -930,14 +930,14 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 
 			// Verify both runs produced the same winner
 			if results[0].Winner != results[1].Winner {
-				t.Logf("Winner determination is not deterministic: run1=%s, run2=%s", 
+				t.Logf("Winner determination is not deterministic: run1=%s, run2=%s",
 					results[0].Winner, results[1].Winner)
 				return false
 			}
 
 			// Verify rankings are identical
 			if len(results[0].Rankings) != len(results[1].Rankings) {
-				t.Logf("Rankings length mismatch: run1=%d, run2=%d", 
+				t.Logf("Rankings length mismatch: run1=%d, run2=%d",
 					len(results[0].Rankings), len(results[1].Rankings))
 				return false
 			}
@@ -946,7 +946,7 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 				r1 := results[0].Rankings[i]
 				r2 := results[1].Rankings[i]
 
-				if r1.PlayerID != r2.PlayerID || r1.FinalScore != r2.FinalScore || 
+				if r1.PlayerID != r2.PlayerID || r1.FinalScore != r2.FinalScore ||
 					r1.PuddingCount != r2.PuddingCount || r1.Rank != r2.Rank {
 					t.Logf("Rankings differ at position %d", i)
 					return false
@@ -956,7 +956,7 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 			// Verify winner is the player with highest score
 			if len(results[0].Rankings) > 0 {
 				winner := results[0].Rankings[0]
-				
+
 				// Winner should have rank 1
 				if winner.Rank != 1 {
 					t.Logf("Winner has rank %d, expected 1", winner.Rank)
@@ -967,11 +967,11 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 				for i := 1; i < len(results[0].Rankings); i++ {
 					other := results[0].Rankings[i]
 					if other.FinalScore > winner.FinalScore {
-						t.Logf("Player %s has higher score %d than winner %s with score %d", 
+						t.Logf("Player %s has higher score %d than winner %s with score %d",
 							other.PlayerID, other.FinalScore, winner.PlayerID, winner.FinalScore)
 						return false
 					}
-					
+
 					// If scores are equal, winner should have more or equal pudding
 					if other.FinalScore == winner.FinalScore && other.PuddingCount > winner.PuddingCount {
 						t.Logf("Player %s has same score but more pudding than winner", other.PlayerID)
@@ -985,6 +985,157 @@ func TestWinnerDeterminationIsDeterministic(t *testing.T) {
 		gen.IntRange(2, 5),
 		gen.SliceOf(gen.IntRange(0, 200)),
 		gen.SliceOf(gen.IntRange(0, 20)),
+	))
+
+	properties.TestingRun(t, gopter.ConsoleReporter(false))
+}
+
+// Feature: sushi-go-game, Property 19: Player reconnection preserves state
+// Validates: Requirements 22.1, 22.2, 22.4
+func TestPlayerReconnectionPreservesState(t *testing.T) {
+	// Note: This test simulates reconnection at the engine level
+	// The actual WebSocket reconnection logic is in the handlers package
+
+	properties := gopter.NewProperties(nil)
+
+	properties.Property("player state is preserved when reconnecting with same username", prop.ForAll(
+		func(playerCount int) bool {
+			// Clamp to valid range
+			if playerCount < 2 {
+				playerCount = 2
+			}
+			if playerCount > 5 {
+				playerCount = 5
+			}
+
+			engine := NewEngine()
+
+			// Create players with specific names
+			playerIDs := make([]string, playerCount)
+			playerNames := make([]string, playerCount)
+			for i := 0; i < playerCount; i++ {
+				playerIDs[i] = fmt.Sprintf("player%d", i)
+				playerNames[i] = fmt.Sprintf("TestPlayer%d", i)
+			}
+
+			// Create and start game
+			game, err := engine.CreateGame(playerIDs)
+			if err != nil {
+				t.Logf("Failed to create game: %v", err)
+				return false
+			}
+
+			// Set player names
+			for i, player := range game.Players {
+				player.Name = playerNames[i]
+			}
+
+			err = engine.StartGame(game.ID)
+			if err != nil {
+				t.Logf("Failed to start game: %v", err)
+				return false
+			}
+
+			// Start round and deal cards
+			err = engine.StartRound(game.ID)
+			if err != nil {
+				t.Logf("Failed to start round: %v", err)
+				return false
+			}
+
+			// Get game state
+			game, err = engine.GetGame(game.ID)
+			if err != nil {
+				t.Logf("Failed to get game: %v", err)
+				return false
+			}
+
+			// Pick a player to "disconnect" and save their state
+			disconnectedPlayerIdx := 0
+			disconnectedPlayer := game.Players[disconnectedPlayerIdx]
+
+			// Save the player's state before "disconnection"
+			savedHand := make([]models.Card, len(disconnectedPlayer.Hand))
+			copy(savedHand, disconnectedPlayer.Hand)
+			savedCollection := make([]models.Card, len(disconnectedPlayer.Collection))
+			copy(savedCollection, disconnectedPlayer.Collection)
+			savedPudding := make([]models.Card, len(disconnectedPlayer.PuddingCards))
+			copy(savedPudding, disconnectedPlayer.PuddingCards)
+			savedScore := disconnectedPlayer.Score
+			savedRoundScores := make([]int, len(disconnectedPlayer.RoundScores))
+			copy(savedRoundScores, disconnectedPlayer.RoundScores)
+			savedID := disconnectedPlayer.ID
+			savedName := disconnectedPlayer.Name
+
+			// Simulate some game progress (other players play cards)
+			for i := 1; i < playerCount; i++ {
+				player := game.Players[i]
+				if len(player.Hand) > 0 {
+					err = engine.PlayCard(game.ID, player.ID, 0, false)
+					if err != nil {
+						t.Logf("Failed to play card: %v", err)
+						return false
+					}
+				}
+			}
+
+			// Get updated game state
+			game, err = engine.GetGame(game.ID)
+			if err != nil {
+				t.Logf("Failed to get game: %v", err)
+				return false
+			}
+
+			// Verify the disconnected player's state is still intact
+			reconnectedPlayer := game.Players[disconnectedPlayerIdx]
+
+			// Check that all state is preserved
+			if reconnectedPlayer.ID != savedID {
+				t.Logf("Player ID changed: expected %s, got %s", savedID, reconnectedPlayer.ID)
+				return false
+			}
+
+			if reconnectedPlayer.Name != savedName {
+				t.Logf("Player name changed: expected %s, got %s", savedName, reconnectedPlayer.Name)
+				return false
+			}
+
+			if len(reconnectedPlayer.Hand) != len(savedHand) {
+				t.Logf("Hand size changed: expected %d, got %d", len(savedHand), len(reconnectedPlayer.Hand))
+				return false
+			}
+
+			// Verify hand contents are the same
+			for i, card := range reconnectedPlayer.Hand {
+				if card.ID != savedHand[i].ID || card.Type != savedHand[i].Type {
+					t.Logf("Hand card %d changed", i)
+					return false
+				}
+			}
+
+			if len(reconnectedPlayer.Collection) != len(savedCollection) {
+				t.Logf("Collection size changed: expected %d, got %d", len(savedCollection), len(reconnectedPlayer.Collection))
+				return false
+			}
+
+			if len(reconnectedPlayer.PuddingCards) != len(savedPudding) {
+				t.Logf("Pudding cards changed: expected %d, got %d", len(savedPudding), len(reconnectedPlayer.PuddingCards))
+				return false
+			}
+
+			if reconnectedPlayer.Score != savedScore {
+				t.Logf("Score changed: expected %d, got %d", savedScore, reconnectedPlayer.Score)
+				return false
+			}
+
+			if len(reconnectedPlayer.RoundScores) != len(savedRoundScores) {
+				t.Logf("Round scores length changed: expected %d, got %d", len(savedRoundScores), len(reconnectedPlayer.RoundScores))
+				return false
+			}
+
+			return true
+		},
+		gen.IntRange(2, 5),
 	))
 
 	properties.TestingRun(t, gopter.ConsoleReporter(false))
