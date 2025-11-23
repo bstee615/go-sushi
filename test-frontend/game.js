@@ -287,6 +287,23 @@ function continueStateUpdate(payload, animationType) {
         currentGameIdDiv.style.display = 'block';
     }
     
+    // Show/hide panels based on game phase
+    const waitingMessage = document.getElementById('waitingMessage');
+    const handContent = document.getElementById('handContent');
+    const collectionPanel = document.getElementById('collectionPanel');
+    
+    if (gameState.phase === 'waiting') {
+        // Show waiting message, hide game content
+        waitingMessage.style.display = 'block';
+        handContent.style.display = 'none';
+        collectionPanel.style.display = 'none';
+    } else {
+        // Hide waiting message, show game content
+        waitingMessage.style.display = 'none';
+        handContent.style.display = 'block';
+        collectionPanel.style.display = 'block';
+    }
+    
     // Update UI with animation type
     updatePhaseIndicator();
     updateHand(animationType);
@@ -721,10 +738,22 @@ function updatePhaseIndicator() {
     if (!gameState) {
         roundDots.innerHTML = '';
         turnDots.innerHTML = '';
+        roundIndicator.style.display = 'none';
+        turnIndicator.style.display = 'none';
         return;
     }
     
     const round = gameState.currentRound || gameState.current_round || 0;
+    
+    // Only show indicators if game has started (round > 0)
+    if (round === 0) {
+        roundIndicator.style.display = 'none';
+        turnIndicator.style.display = 'none';
+        return;
+    }
+    
+    // Show round indicator
+    roundIndicator.style.display = 'flex';
     
     // Calculate turn number (each round has multiple turns as hands are passed)
     const myPlayer = gameState.players?.find(p => p.id === myPlayerId);
@@ -822,7 +851,8 @@ function updateHand(animationType = null) {
             updateStatusMessage('👆 Click a card to play it', '#e3f2fd', '#1565c0');
         }
     } else {
-        updateStatusMessage(''); // Hide when not in selecting phase
+        // Show transition message when not in selecting phase
+        updateStatusMessage('🔄 Moving to the next turn...', '#e0e0e0', '#666');
     }
     
     // Show chopsticks toggle button (only if chopsticks are available to use)
@@ -1253,6 +1283,20 @@ function formatCardType(type) {
     return type.split('_').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
+}
+
+function getCardColor(cardType) {
+    const colors = {
+        'maki_roll': 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)', // Red
+        'tempura': 'linear-gradient(135deg, #ffa726 0%, #fb8c00 100%)', // Orange
+        'sashimi': 'linear-gradient(135deg, #ec407a 0%, #d81b60 100%)', // Pink
+        'dumpling': 'linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%)', // Purple
+        'nigiri': 'linear-gradient(135deg, #26c6da 0%, #00acc1 100%)', // Cyan
+        'wasabi': 'linear-gradient(135deg, #66bb6a 0%, #43a047 100%)', // Green
+        'chopsticks': 'linear-gradient(135deg, #ffd54f 0%, #ffb300 100%)', // Yellow
+        'pudding': 'linear-gradient(135deg, #ffb74d 0%, #f57c00 100%)' // Amber
+    };
+    return colors[cardType] || 'linear-gradient(135deg, #78909c 0%, #546e7a 100%)'; // Default gray
 }
 
 // Initialize - Auto-connect on page load

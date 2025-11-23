@@ -63,20 +63,27 @@
         </div>
         
         <div class="game-area">
-            <div class="panel panel-large">
+            <div class="panel panel-large" id="handPanel">
                 <h2>Your Hand</h2>
-                <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 15px; flex-wrap: wrap;">
-                    <div id="roundIndicator" style="background: #667eea; color: white; padding: 8px 15px; border-radius: 8px; font-size: 14px; font-weight: 600; display: flex; flex-direction: column; align-items: center; min-width: 120px;">
-                        <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">ROUND</div>
-                        <div id="roundDots"></div>
-                    </div>
-                    <div id="turnIndicator" style="background: #764ba2; color: white; padding: 8px 15px; border-radius: 8px; font-size: 14px; font-weight: 600; display: flex; flex-direction: column; align-items: center; min-width: 200px;">
-                        <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">TURN</div>
-                        <div id="turnDots"></div>
-                    </div>
-                    <div id="handStatusMessage" style="background: #e3f2fd; color: #1565c0; padding: 8px 15px; border-radius: 8px; font-size: 14px; font-weight: 600; visibility: hidden; display: flex; align-items: center; flex: 1; min-width: 200px; justify-content: center;"></div>
+                <div id="waitingMessage" style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🍣</div>
+                    <div style="font-size: 24px; color: #333; font-weight: bold; margin-bottom: 10px;">Ready to Play!</div>
+                    <div style="font-size: 18px; color: #666;">Click "Start Game" to begin</div>
                 </div>
-                <div id="hand" class="hand"></div>
+                <div id="handContent" style="display: none;">
+                    <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 15px; flex-wrap: wrap;">
+                        <div id="roundIndicator" style="background: #f0f0f0; color: #333; padding: 8px 15px; border-radius: 5px; font-size: 14px; display: none; flex-direction: column; align-items: center; min-width: 120px;">
+                            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 4px; font-weight: 600;">ROUND</div>
+                            <div id="roundDots"></div>
+                        </div>
+                        <div id="turnIndicator" style="background: #f0f0f0; color: #333; padding: 8px 15px; border-radius: 5px; font-size: 14px; display: none; flex-direction: column; align-items: center; min-width: 200px;">
+                            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 4px; font-weight: 600;">TURN</div>
+                            <div id="turnDots"></div>
+                        </div>
+                        <div id="handStatusMessage" style="background: #e3f2fd; color: #1565c0; padding: 8px 15px; border-radius: 5px; font-size: 14px; font-weight: 600; visibility: hidden; display: flex; align-items: center; flex: 1; min-width: 200px; justify-content: center;"></div>
+                    </div>
+                    <div id="hand" class="hand"></div>
+                </div>
             </div>
             
             <div class="panel">
@@ -84,7 +91,7 @@
                 <ul id="playersList" class="players-list"></ul>
             </div>
             
-            <div class="panel">
+            <div class="panel" id="collectionPanel" style="display: none;">
                 <h2>Your Collection</h2>
                 <div id="collection" class="collection"></div>
             </div>
