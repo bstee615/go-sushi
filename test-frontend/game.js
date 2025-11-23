@@ -293,7 +293,7 @@ function continueStateUpdate(payload, animationType) {
     const handContent = document.getElementById('handContent');
     const collectionPanel = document.getElementById('collectionPanel');
     
-    if (gameState.phase === 'finished') {
+    if (gameState.phase === 'game_end') {
         // Game ended - show final scores
         handleGameEnd(payload);
     } else if (gameState.phase === 'waiting') {
@@ -921,7 +921,7 @@ function updateHand(animationType = null) {
     const hasSelected = myPlayer?.hasSelected;
     
     // Update status message based on game state
-    if (gameState.phase === 'finished') {
+    if (gameState.phase === 'game_end') {
         updateStatusMessage('🎉 Game Over! Check the scores above', '#4caf50', 'white');
     } else if (hasSelected && gameState.phase === 'selecting') {
         updateStatusMessage('⏳ Waiting for other players...', '#fff3cd', '#856404');

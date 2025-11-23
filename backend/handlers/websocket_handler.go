@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/sushi-go-game/backend/engine"
@@ -377,6 +378,24 @@ func (h *WSHandler) handleSelectCard(client *Client, payload json.RawMessage) {
 
 				// Broadcast game end
 				h.broadcastGameEnd(client.gameID, result)
+
+				// Broadcast final game state
+				h.broadcastGameState(client.gameID)
+
+				// Delete the game after a delay to ensure all clients receive the message
+				gameID := client.gameID
+				go func() {
+					time.Sleep(5 * time.Second)
+					log.Printf("Deleting completed game: %s", gameID)
+					h.engine.DeleteGame(gameID)
+
+					// Clean up client mappings
+					h.mu.Lock()
+					delete(h.games, gameID)
+					h.mu.Unlock()
+
+					log.Printf("Game %s deleted successfully", gameID)
+				}()
 			} else {
 				// Broadcast round end
 				h.broadcastRoundEnd(client.gameID)
