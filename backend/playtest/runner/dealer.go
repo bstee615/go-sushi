@@ -20,7 +20,7 @@ func NewPlaytestDealer(deals map[int][][]models.Card) *PlaytestDealer {
 
 // DealCards deals cards according to the predefined script
 // Players are dealt cards in the order they appear in the players slice
-func (d *PlaytestDealer) DealCards(players []*models.Player, round int) error {
+func (d *PlaytestDealer) DealCards(players []*models.Player, round int, cardsPerHand int) error {
 	roundDeals, ok := d.deals[round]
 	if !ok {
 		return fmt.Errorf("no card deals defined for round %d", round)
