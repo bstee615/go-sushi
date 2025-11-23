@@ -125,7 +125,7 @@ button:disabled {
 /* Hand container wrapper for proper overflow handling */
 #hand {
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     padding: 10px 0;
 }
 
