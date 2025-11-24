@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	prAppPrefix     = "go-sushi-pr-"
-	branchAppPrefix = "go-sushi-branch-"
-	productionApp   = "go-sushi"
-	maxAge          = 7 * 24 * time.Hour // 1 week
+	prAppPrefix   = "go-sushi-pr-"
+	productionApp = "go-sushi"
+	maxAge        = 7 * 24 * time.Hour // 1 week
 )
 
 type appStatus struct {
@@ -48,10 +47,10 @@ func main() {
 		log.Fatalf("Failed to list apps: %v", err)
 	}
 
-	// Filter review apps (both PR-based and branch-based)
+	// Filter review apps (PR-based only)
 	var reviewApps []fly.App
 	for _, app := range apps {
-		if (strings.HasPrefix(app.Name, prAppPrefix) || strings.HasPrefix(app.Name, branchAppPrefix)) && app.Name != productionApp {
+		if strings.HasPrefix(app.Name, prAppPrefix) && app.Name != productionApp {
 			reviewApps = append(reviewApps, app)
 		}
 	}
@@ -200,6 +199,7 @@ func processApp(ctx context.Context, client *fly.Client, appName string) appStat
 }
 
 func printSummary(results []appStatus) {
+	// Print to console
 	fmt.Println("\n" + strings.Repeat("=", 70))
 	fmt.Println("CLEANUP SUMMARY")
 	fmt.Println(strings.Repeat("=", 70))
@@ -236,4 +236,62 @@ func printSummary(results []appStatus) {
 	fmt.Printf("  Skipped (no releases): %d\n", skipped)
 	fmt.Printf("  Errors encountered: %d\n", errorCount)
 	fmt.Println(strings.Repeat("=", 70))
+
+	// Write to GitHub Actions summary if available
+	summaryFile := os.Getenv("GITHUB_STEP_SUMMARY")
+	if summaryFile != "" {
+		writeGitHubSummary(summaryFile, results, live, scaledDown, skipped, errorCount)
+	}
+}
+
+func writeGitHubSummary(summaryFile string, results []appStatus, live, scaledDown, skipped, errorCount int) {
+	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Printf("Warning: Could not write to GitHub summary: %v\n", err)
+		return
+	}
+	defer f.Close()
+
+	// Write markdown summary
+	f.WriteString("## 🧹 Review App Cleanup Summary\n\n")
+
+	// Stats table
+	f.WriteString("### Statistics\n\n")
+	f.WriteString("| Metric | Count |\n")
+	f.WriteString("|--------|-------|\n")
+	f.WriteString(fmt.Sprintf("| **Total Review Apps** | %d |\n", len(results)))
+	f.WriteString(fmt.Sprintf("| 🟢 Live (< 7 days) | %d |\n", live))
+	f.WriteString(fmt.Sprintf("| 🔴 Scaled Down (≥ 7 days) | %d |\n", scaledDown))
+	f.WriteString(fmt.Sprintf("| ⚪ Skipped (no releases) | %d |\n", skipped))
+	f.WriteString(fmt.Sprintf("| ❌ Errors | %d |\n", errorCount))
+	f.WriteString("\n")
+
+	// Detailed app status
+	if len(results) > 0 {
+		f.WriteString("### Review Apps Status\n\n")
+		f.WriteString("| Status | App Name | Details |\n")
+		f.WriteString("|--------|----------|----------|\n")
+		for _, r := range results {
+			statusEmoji := ""
+			switch r.status {
+			case "live":
+				statusEmoji = "🟢"
+			case "scaled-down":
+				statusEmoji = "🔴"
+			case "skipped":
+				statusEmoji = "⚪"
+			case "error":
+				statusEmoji = "❌"
+			}
+			f.WriteString(fmt.Sprintf("| %s %s | `%s` | %s |\n", statusEmoji, r.status, r.name, r.message))
+		}
+		f.WriteString("\n")
+	}
+
+	// Add footer
+	if errorCount > 0 {
+		f.WriteString("⚠️ **Warning:** Some errors were encountered during cleanup. See details above.\n")
+	} else {
+		f.WriteString("✅ **Success:** All review apps processed successfully.\n")
+	}
 }
