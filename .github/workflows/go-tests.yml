@@ -29,24 +29,23 @@ jobs:
     - name: Run tests with coverage
       working-directory: ./backend
       # Note: Excluding ./playtest due to pre-existing build issues (linting errors)
-      # Testing packages: scoring, server, engine, models, handlers
       # Note: Race detection disabled due to pre-existing data race in handlers package
-      # Generate coverage for each package separately to avoid conflicts
+      # Automatically runs all tests except playtest
       run: |
-        go test ./scoring -v -coverprofile=scoring.out -covermode=atomic
-        go test ./server -v -coverprofile=server.out -covermode=atomic
-        go test ./engine -v -coverprofile=engine.out -covermode=atomic
-        go test ./models -v
-        go test ./handlers -v
+        go test $(go list ./... | grep -v playtest) -v -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-results.txt
 
-    - name: Combine coverage reports
+    - name: Generate coverage summary
       working-directory: ./backend
       run: |
-        echo "mode: atomic" > coverage.out
-        # Check that coverage files exist before combining
-        test -f scoring.out && tail -n +2 scoring.out >> coverage.out
-        test -f server.out && tail -n +2 server.out >> coverage.out
-        test -f engine.out && tail -n +2 engine.out >> coverage.out
+        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat test-results.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        go tool cover -func=coverage.out >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
     
     - name: Generate coverage HTML report
       working-directory: ./backend
@@ -58,12 +57,10 @@ jobs:
         name: coverage-report
         path: backend/coverage.html
 
-    - name: Check test coverage
+    - name: Display coverage information
       working-directory: ./backend
+      # This step is informational only and does not affect success/failure
+      continue-on-error: true
       run: |
         coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total coverage: ${coverage}%"
-        # Note: Using awk for floating point comparison
-        if [ $(echo "$coverage < 50" | awk '{if ($1 < $3) print 1; else print 0}') -eq 1 ]; then
-          echo "Warning: Coverage is below 50%"
-        fi
