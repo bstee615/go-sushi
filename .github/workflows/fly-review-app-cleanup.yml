@@ -15,92 +15,19 @@ jobs:
     name: Scale old review apps to 0
     runs-on: ubuntu-latest
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/checkout@v4
       
-      - name: Install jq for JSON parsing
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
       
-      - name: Cleanup old review apps
+      - name: Build cleanup tool
         run: |
-          echo "Checking for review apps older than 1 week..."
-          
-          # Get current timestamp
-          CURRENT_TIME=$(date +%s)
-          ONE_WEEK_AGO=$((CURRENT_TIME - 604800)) # 604800 seconds = 7 days
-          
-          # List all apps and filter for review apps (not production)
-          REVIEW_APPS=$(flyctl apps list --json | jq -r '.[] | select(.Name | startswith("go-sushi-pr-")) | .Name')
-          
-          if [ -z "$REVIEW_APPS" ]; then
-            echo "No review apps found."
-            exit 0
-          fi
-          
-          echo "Found review apps to check:"
-          echo "$REVIEW_APPS"
-          echo ""
-          
-          for APP_NAME in $REVIEW_APPS; do
-            echo "Checking app: $APP_NAME"
-            
-            # Get app releases to find the first deployment
-            RELEASES=$(flyctl releases --app "$APP_NAME" --json 2>&1)
-            RELEASES_EXIT_CODE=$?
-            
-            if [ $RELEASES_EXIT_CODE -ne 0 ]; then
-              echo "⚠️  Error fetching releases for $APP_NAME: $RELEASES"
-              echo ""
-              continue
-            fi
-            
-            if [ "$RELEASES" = "[]" ] || [ -z "$RELEASES" ]; then
-              echo "⚠️  No releases found for $APP_NAME, skipping..."
-              echo ""
-              continue
-            fi
-            
-            # Get the oldest release (first deployment) - releases are in reverse chronological order
-            OLDEST_RELEASE=$(echo "$RELEASES" | jq -r '.[-1].CreatedAt' 2>/dev/null)
-            
-            if [ -z "$OLDEST_RELEASE" ] || [ "$OLDEST_RELEASE" = "null" ]; then
-              echo "⚠️  Could not determine creation date for $APP_NAME, skipping..."
-              echo ""
-              continue
-            fi
-            
-            # Parse the creation timestamp using Python for better reliability
-            RELEASE_TIME=$(python3 -c "from datetime import datetime; import sys; dt = datetime.fromisoformat('$OLDEST_RELEASE'.replace('Z', '+00:00')); print(int(dt.timestamp()))" 2>/dev/null || echo "0")
-            
-            if [ "$RELEASE_TIME" -eq 0 ]; then
-              echo "⚠️  Could not parse date for $APP_NAME, skipping..."
-              echo ""
-              continue
-            fi
-            
-            AGE_DAYS=$(( (CURRENT_TIME - RELEASE_TIME) / 86400 ))
-            
-            if [ "$RELEASE_TIME" -lt "$ONE_WEEK_AGO" ]; then
-              echo "📅 App $APP_NAME is $AGE_DAYS days old (created: $OLDEST_RELEASE)"
-              echo "⚙️  Scaling app to 0 machines..."
-              
-              # Scale the app to 0 and capture error output
-              if OUTPUT=$(flyctl scale count 0 --app "$APP_NAME" --yes 2>&1); then
-                echo "✅ Successfully scaled $APP_NAME to 0"
-              else
-                echo "❌ Failed to scale $APP_NAME"
-                echo "Error output: $OUTPUT"
-              fi
-            else
-              echo "✓ App $APP_NAME is $AGE_DAYS days old, skipping (less than 7 days)"
-            fi
-            echo ""
-          done
-          
-          echo "Cleanup complete!"
+          cd cmd/cleanup-review-apps
+          go build -o cleanup-review-apps
+      
+      - name: Run cleanup
+        run: ./cmd/cleanup-review-apps/cleanup-review-apps
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      
-      - name: Summary
-        run: |
-          echo "Review app cleanup job completed."
-          echo "Any review apps older than 1 week have been scaled to 0."
