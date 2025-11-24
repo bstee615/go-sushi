@@ -1,5 +1,21 @@
-# Build stage
-FROM golang:1.21-alpine AS builder
+# Multi-stage build for Go backend + Svelte frontend
+
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend files
+COPY frontend/package*.json ./
+RUN npm ci
+
+COPY frontend/ ./
+
+# Build frontend for production
+RUN npm run build
+
+# Stage 2: Build backend
+FROM golang:1.21-alpine AS backend-builder
 
 WORKDIR /app
 
@@ -13,18 +29,18 @@ COPY backend/ ./
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
-# Runtime stage
+# Stage 3: Runtime
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder
-COPY --from=builder /app/main .
+# Copy the backend binary
+COPY --from=backend-builder /app/main .
 
-# Copy frontend files
-COPY test-frontend/ ./test-frontend/
+# Copy the built frontend
+COPY --from=frontend-builder /app/frontend/dist ./frontend/
 
 EXPOSE 8080
 
