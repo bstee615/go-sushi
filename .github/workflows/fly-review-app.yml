@@ -16,8 +16,8 @@ permissions:
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   # Allowlist of GitHub usernames allowed to deploy review apps
-  # Also allows copilot-swe-agent[bot] to proceed
-  DEPLOY_ALLOWLIST: "bstee615,copilot-swe-agent[bot]"
+  # Also allows any Copilot-related users to proceed
+  DEPLOY_ALLOWLIST: "bstee615"
   # Set these to your Fly.io organization and preferred region
   FLY_REGION: ord
   FLY_ORG: personal
@@ -43,11 +43,19 @@ jobs:
             TRIGGER_USER="${{ github.event.pull_request.user.login }}"
           fi
           
+          echo "Event name: ${{ github.event_name }}"
+          echo "PR user login: ${{ github.event.pull_request.user.login }}"
+          echo "GitHub actor: ${{ github.actor }}"
+          echo "Triggering actor: ${{ github.triggering_actor }}"
+          echo "Event sender: ${{ github.event.sender.login }}"
           echo "Checking authorization for user: $TRIGGER_USER"
           
-          # Check if user is in allowlist (bstee615 or copilot-swe-agent[bot])
+          # Check if user is in allowlist OR is any Copilot-related user
           if echo "${{ env.DEPLOY_ALLOWLIST }}" | tr ',' '\n' | grep -qx "$TRIGGER_USER"; then
-            echo "✅ User $TRIGGER_USER is authorized"
+            echo "✅ User $TRIGGER_USER is authorized (in allowlist)"
+            echo "authorized=true" >> $GITHUB_OUTPUT
+          elif echo "$TRIGGER_USER" | grep -iq "copilot"; then
+            echo "✅ User $TRIGGER_USER is authorized (Copilot user)"
             echo "authorized=true" >> $GITHUB_OUTPUT
           else
             echo "❌ User $TRIGGER_USER is not authorized"
