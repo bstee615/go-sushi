@@ -106,6 +106,7 @@
   }
 
   function renderPlayers() {
+    if (!playersContainer) return;
     playersContainer.removeChildren();
     
     const numPlayers = players.length;
@@ -182,6 +183,8 @@
   }
 
   function renderCards() {
+    if (!beltContainer || !myTableContainer) return;
+    
     cardSprites.forEach(sprite => {
       if (sprite.container) {
         sprite.container.parent?.removeChild(sprite.container);
