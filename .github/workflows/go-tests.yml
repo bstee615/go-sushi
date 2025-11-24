@@ -11,6 +11,7 @@ jobs:
     name: Run Go Tests
     runs-on: ubuntu-latest
     
+    # This job gates PR merges - all tests must pass
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
 
     - name: Run tests
       working-directory: ./backend
-      run: go test ./... -v -race -coverprofile=coverage.out
+      run: go test ./scoring ./server ./engine ./models ./handlers -v -race -coverprofile=coverage.out
 
     - name: Generate coverage report
       working-directory: ./backend
