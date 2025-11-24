@@ -7,9 +7,19 @@
   let selectedCardIndex: number | null = null;
   let secondCardIndex: number | null = null;
   let chopsticksMode = false;
+  let previousHandSize = 0;
 
   wsStore.gameState.subscribe(value => {
     gameState = value;
+    
+    // Reset selection when hand changes (new round or cards passed)
+    const currentHandSize = gameState?.myHand?.length || 0;
+    if (currentHandSize !== previousHandSize) {
+      selectedCardIndex = null;
+      secondCardIndex = null;
+      chopsticksMode = false;
+      previousHandSize = currentHandSize;
+    }
   });
 
   function startGame() {
@@ -116,10 +126,28 @@
     ).join(' ');
   }
 
+  // Count sets for multiplier indicators
+  function countSets(collection: Card[]) {
+    const tempuraCount = collection.filter(c => c.type === 'tempura').length;
+    const sashimiCount = collection.filter(c => c.type === 'sashimi').length;
+    const wasabiCount = collection.filter(c => c.type === 'wasabi').length;
+    const dumplingCount = collection.filter(c => c.type === 'dumpling').length;
+    
+    return {
+      tempuraSets: Math.floor(tempuraCount / 2),
+      tempuraRemainder: tempuraCount % 2,
+      sashimiSets: Math.floor(sashimiCount / 3),
+      sashimiRemainder: sashimiCount % 3,
+      wasabiActive: wasabiCount > 0,
+      dumplingCount
+    };
+  }
+
   $: canStartGame = gameState?.phase === 'waiting' && (gameState?.players?.length || 0) >= 2;
   $: myPlayer = gameState?.players?.find(p => p.id === gameState?.myPlayerId);
   $: canUseChopsticks = (myPlayer?.chopsticksCount || 0) > 0;
   $: myHand = gameState?.myHand || [];
+  $: sets = myPlayer?.collection ? countSets(myPlayer.collection) : null;
 </script>
 
 <div class="min-h-screen p-4 sm:p-6 animate-fade-in">
@@ -183,7 +211,7 @@
               <div class="text-gray-600">Click "Start Game" when all players are ready</div>
             </div>
           {:else}
-            <!-- Round Indicator -->
+            <!-- Round Indicator and Actions -->
             {#if (gameState?.currentRound || 0) > 0}
               <div class="flex flex-wrap gap-3 mb-6">
                 <div class="px-4 py-2 bg-amber-50 rounded-lg border-2 border-amber-800/30">
@@ -196,6 +224,20 @@
                     {/each}
                   </div>
                 </div>
+
+                <!-- Chopsticks Button -->
+                {#if canUseChopsticks && gameState?.phase === 'selecting' && !myPlayer?.hasSelected}
+                  <button
+                    on:click={toggleChopsticks}
+                    class="px-4 py-2 rounded-lg border-2 font-semibold flex items-center transition-all {chopsticksMode ? 'bg-yellow-500 text-white border-yellow-600 animate-pulse-rotate' : 'bg-white text-yellow-800 border-yellow-400 hover:bg-yellow-50'}"
+                  >
+                    <span class="text-xl mr-2">🥢</span>
+                    Use Chopsticks!
+                    {#if chopsticksMode}
+                      <span class="ml-2 text-sm">(Select 2 cards)</span>
+                    {/if}
+                  </button>
+                {/if}
 
                 {#if myPlayer?.hasSelected && gameState?.phase === 'selecting'}
                   <div class="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg border-2 border-amber-300 font-semibold flex items-center animate-gentle-pulse">
@@ -285,8 +327,8 @@
               {#if myPlayer.collection.length === 0}
                 <p class="text-gray-500 w-full text-center py-4">No cards collected yet</p>
               {:else}
-                {#each myPlayer.collection as card}
-                  <div class="px-3 py-2 bg-gradient-to-br {getCardColor(card.type)} text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-1">
+                {#each myPlayer.collection as card, idx}
+                  <div class="px-3 py-2 bg-gradient-to-br {getCardColor(card.type)} text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-1 relative">
                     <span>{getCardEmoji(card.type)}</span>
                     <span>{formatCardType(card.type)}</span>
                     {#if card.variant}
@@ -299,6 +341,60 @@
                 {/each}
               {/if}
             </div>
+
+            <!-- Set Indicators -->
+            {#if sets}
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                <!-- Tempura Sets -->
+                {#if sets.tempuraSets > 0 || sets.tempuraRemainder > 0}
+                  <div class="px-3 py-2 bg-orange-100 border-2 border-orange-300 rounded-lg text-center">
+                    <div class="text-lg">🍤</div>
+                    <div class="text-xs font-bold text-orange-900">
+                      {#if sets.tempuraSets > 0}
+                        <span class="text-lg animate-pulse-rotate">✨ {sets.tempuraSets}x2!</span>
+                      {:else}
+                        {sets.tempuraRemainder}/2
+                      {/if}
+                    </div>
+                  </div>
+                {/if}
+
+                <!-- Sashimi Sets -->
+                {#if sets.sashimiSets > 0 || sets.sashimiRemainder > 0}
+                  <div class="px-3 py-2 bg-pink-100 border-2 border-pink-300 rounded-lg text-center">
+                    <div class="text-lg">🐟</div>
+                    <div class="text-xs font-bold text-pink-900">
+                      {#if sets.sashimiSets > 0}
+                        <span class="text-lg animate-pulse-rotate">✨ {sets.sashimiSets}x3!</span>
+                      {:else}
+                        {sets.sashimiRemainder}/3
+                      {/if}
+                    </div>
+                  </div>
+                {/if}
+
+                <!-- Wasabi Active -->
+                {#if sets.wasabiActive}
+                  <div class="px-3 py-2 bg-green-100 border-2 border-green-300 rounded-lg text-center">
+                    <div class="text-lg">🟢</div>
+                    <div class="text-xs font-bold text-green-900">
+                      <span class="text-lg animate-pulse-rotate">✨ 3x!</span>
+                      <div class="text-xs opacity-75">Wasabi Active</div>
+                    </div>
+                  </div>
+                {/if}
+
+                <!-- Chopsticks Available -->
+                {#if canUseChopsticks}
+                  <div class="px-3 py-2 bg-yellow-100 border-2 border-yellow-300 rounded-lg text-center">
+                    <div class="text-lg">🥢</div>
+                    <div class="text-xs font-bold text-yellow-900">
+                      {myPlayer.chopsticksCount} Available
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            {/if}
 
             <div class="p-3 bg-amber-100 rounded-lg border-2 border-amber-300 text-center">
               <span class="text-2xl mr-2">🍮</span>
@@ -322,19 +418,31 @@
           {#if gameState?.players}
             <div class="space-y-3">
               {#each gameState.players as player}
-                <div class="p-4 bg-gradient-to-r from-amber-50 to-white rounded-lg border-2 {player.id === gameState.myPlayerId ? 'border-red-600' : 'border-amber-800/20'}">
+                <div class="p-4 bg-gradient-to-r from-amber-50 to-white rounded-lg border-2 {player.id === gameState.myPlayerId ? 'border-red-600' : 'border-amber-800/20'} {player.hasSelected && gameState.phase === 'selecting' ? 'ring-2 ring-green-400 shadow-lg' : ''}">
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-2">
-                      <span class="text-2xl">{player.hasSelected ? '✓' : '○'}</span>
+                      {#if player.hasSelected && gameState.phase === 'selecting'}
+                        <span class="text-2xl animate-bounce">✅</span>
+                      {:else}
+                        <span class="text-2xl">○</span>
+                      {/if}
                       <div>
-                        <div class="font-bold text-amber-900">
+                        <div class="font-bold text-amber-900 flex items-center gap-2">
                           {player.name}
                           {#if player.id === gameState.myPlayerId}
                             <span class="text-xs text-red-600">(You)</span>
                           {/if}
+                          {#if player.hasSelected && gameState.phase === 'selecting'}
+                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold animate-pulse">
+                              Card Selected!
+                            </span>
+                          {/if}
                         </div>
                         <div class="text-xs text-gray-600">
                           Score: {player.score} | Hand: {player.handSize}
+                          {#if player.chopsticksCount && player.chopsticksCount > 0}
+                            <span class="ml-1">| 🥢 {player.chopsticksCount}</span>
+                          {/if}
                         </div>
                       </div>
                     </div>
@@ -350,11 +458,11 @@
 
                   {#if player.collection && player.collection.length > 0}
                     <div class="flex flex-wrap gap-1 mt-2">
-                      {#each player.collection.slice(0, 6) as card}
+                      {#each player.collection.slice(0, 8) as card}
                         <span class="text-lg">{getCardEmoji(card.type)}</span>
                       {/each}
-                      {#if player.collection.length > 6}
-                        <span class="text-xs text-gray-500">+{player.collection.length - 6}</span>
+                      {#if player.collection.length > 8}
+                        <span class="text-xs text-gray-500">+{player.collection.length - 8}</span>
                       {/if}
                     </div>
                   {/if}
