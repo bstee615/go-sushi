@@ -39,33 +39,42 @@
     if (!gameState || gameState.phase !== 'selecting') return;
 
     const myPlayer = gameState.players?.find(p => p.id === gameState.myPlayerId);
-    if (myPlayer?.hasSelected) {
-      withdrawCard();
-      return;
-    }
-
-    if (chopsticksMode) {
-      if (index === selectedCardIndex) {
-        selectedCardIndex = null;
-      } else if (index === secondCardIndex) {
-        secondCardIndex = null;
-      } else if (selectedCardIndex === null) {
+    
+    // If already selected this card, deselect it (unless already confirmed)
+    if (!myPlayer?.hasSelected) {
+      if (chopsticksMode) {
+        if (index === selectedCardIndex) {
+          selectedCardIndex = null;
+          return;
+        } else if (index === secondCardIndex) {
+          secondCardIndex = null;
+          return;
+        } else if (selectedCardIndex === null) {
+          selectedCardIndex = index;
+        } else if (secondCardIndex === null) {
+          secondCardIndex = index;
+          wsStore.sendMessage('select_card', {
+            cardIndex: selectedCardIndex,
+            useChopsticks: true,
+            secondCardIndex: secondCardIndex
+          });
+        }
+      } else {
+        // Allow deselection if clicking same card
+        if (index === selectedCardIndex) {
+          selectedCardIndex = null;
+          return;
+        }
         selectedCardIndex = index;
-      } else if (secondCardIndex === null) {
-        secondCardIndex = index;
+        secondCardIndex = null;
         wsStore.sendMessage('select_card', {
           cardIndex: selectedCardIndex,
-          useChopsticks: true,
-          secondCardIndex: secondCardIndex
+          useChopsticks: false
         });
       }
     } else {
-      selectedCardIndex = index;
-      secondCardIndex = null;
-      wsStore.sendMessage('select_card', {
-        cardIndex: selectedCardIndex,
-        useChopsticks: false
-      });
+      // Already confirmed, allow withdrawal
+      withdrawCard();
     }
   }
 
@@ -210,7 +219,7 @@
   </div>
 
   <!-- Main Conveyor Belt Canvas (Full Screen) -->
-  <div class="flex items-center justify-center min-h-screen p-4">
+  <div class="flex items-center justify-center h-screen w-full overflow-hidden">
     {#if gameState?.phase === 'waiting'}
       <div class="text-center text-white">
         <div class="text-9xl mb-6 animate-bounce">🍣</div>
@@ -240,6 +249,7 @@
         canSelect={canSelectCards}
         players={allPlayers}
         myPlayerId={gameState?.myPlayerId || ''}
+        currentRound={gameState?.round || 0}
       />
     {:else if gameState?.phase === 'selecting'}
       <div class="text-center text-white">

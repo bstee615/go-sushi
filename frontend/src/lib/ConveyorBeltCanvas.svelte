@@ -9,6 +9,7 @@
   export let canSelect: boolean = true;
   export let players: any[] = [];
   export let myPlayerId: string = '';
+  export let currentRound: number = 0;
 
   let canvas: HTMLCanvasElement;
   let app: Application;
@@ -31,6 +32,8 @@
   let animationSpeed = 0.05;
   let isAnimating = false;
   let previousHandSize = 0;
+  let previousRound = 0;
+  let roundAnimationFrame = 0;
 
   onMount(async () => {
     app = new Application();
@@ -67,6 +70,20 @@
           isAnimating = false;
         }
         updateCardPositions();
+      }
+      
+      // Round change animation
+      if (roundAnimationFrame > 0) {
+        roundAnimationFrame--;
+        if (roundAnimationFrame % 10 < 5) {
+          // Flash effect
+          app.stage.alpha = 0.8;
+        } else {
+          app.stage.alpha = 1;
+        }
+        if (roundAnimationFrame === 0) {
+          app.stage.alpha = 1;
+        }
       }
     });
   });
@@ -300,7 +317,8 @@
 
       cardContainer.pivot.set(CARD_WIDTH / 2, CARD_HEIGHT / 2);
       
-      if (canSelect && !isSelected) {
+      // Card is always clickable - for selection and deselection
+      if (canSelect) {
         cardGraphics.eventMode = 'static';
         cardGraphics.cursor = 'pointer';
 
@@ -309,13 +327,17 @@
         });
 
         cardGraphics.on('pointerover', () => {
-          cardContainer.scale.set(1.15);
-          cardContainer.zIndex = 1000;
+          if (!isSelected) {
+            cardContainer.scale.set(1.15);
+            cardContainer.zIndex = 1000;
+          }
         });
 
         cardGraphics.on('pointerout', () => {
-          cardContainer.scale.set(1);
-          cardContainer.zIndex = index;
+          if (!isSelected) {
+            cardContainer.scale.set(1);
+            cardContainer.zIndex = index;
+          }
         });
       }
 
@@ -400,6 +422,7 @@
         cardContainer.x = pos.x + Math.cos(angle - Math.PI / 2) * distanceFromPlayer + (i - (numCards - 1) / 2) * (CARD_WIDTH * 0.7);
         cardContainer.y = pos.y + Math.sin(angle - Math.PI / 2) * distanceFromPlayer - fanCurve;
         cardContainer.rotation = angle + (fanAngle * Math.PI) / 180;
+        cardContainer.zIndex = -100; // Put other players' cards behind player names
         
         cardsContainer.addChild(cardContainer);
         cardSprites.push({ 
@@ -418,20 +441,33 @@
     
     cardSprites.forEach((sprite) => {
       if (!sprite.isMyCard) {
-        // Animate other players' cards moving along the belt
-        sprite.container.alpha = 1 - beltOffset; // Fade out
+        // Animate other players' cards fading and repositioning
+        const fadeAmount = Math.sin(beltOffset * Math.PI);
+        sprite.container.alpha = 1 - (fadeAmount * 0.3); // Slight fade
+        // Rotate cards slightly as they "move"
+        const rotationOffset = beltOffset * 0.2;
+        sprite.container.rotation += rotationOffset;
       }
     });
   }
 
   // Trigger animation when hand size changes (cards passed to next player)
   $: if (cards.length !== previousHandSize) {
-    if (previousHandSize > 0) {
-      // Hand changed, animate cards moving
+    if (previousHandSize > 0 && cards.length < previousHandSize) {
+      // Hand changed (cards passed), animate conveyor belt
       isAnimating = true;
       beltOffset = 0;
     }
     previousHandSize = cards.length;
+  }
+  
+  // Trigger round change animation
+  $: if (currentRound !== previousRound && previousRound > 0) {
+    // Round changed, trigger flash animation
+    roundAnimationFrame = 30; // 30 frames of animation (~0.5 seconds at 60fps)
+    previousRound = currentRound;
+  } else if (previousRound === 0 && currentRound > 0) {
+    previousRound = currentRound;
   }
 
   function formatCardType(type: string): string {
@@ -492,7 +528,8 @@
   canvas {
     display: block;
     width: 100%;
-    max-width: 1400px;
+    height: 100vh;
+    max-height: 900px;
     margin: 0 auto;
     border-radius: 12px;
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
