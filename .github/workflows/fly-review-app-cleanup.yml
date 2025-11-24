@@ -7,6 +7,9 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
+# Minimal permissions for security - no GitHub API access needed
+permissions: {}
+
 jobs:
   cleanup-old-review-apps:
     name: Scale old review apps to 0

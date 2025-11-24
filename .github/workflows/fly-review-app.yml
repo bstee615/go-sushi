@@ -5,6 +5,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+# Minimal permissions for security
+permissions:
+  contents: read
+  pull-requests: write  # Needed to post comments on PRs
+
 jobs:
   deploy-review-app:
     name: Deploy review app
