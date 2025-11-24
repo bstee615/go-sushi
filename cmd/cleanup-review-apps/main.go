@@ -103,6 +103,8 @@ func processApp(ctx context.Context, client *fly.Client, appName string) appStat
 	result := appStatus{name: appName}
 
 	// Get releases to find the most recent deployment
+	// We check the most recent release (not the first) so that redeploying
+	// to an existing review app resets the 7-day timer
 	releases, err := client.GetAppReleasesMachines(ctx, appName, "", 1) // Get only the most recent release
 	if err != nil {
 		result.status = "error"
