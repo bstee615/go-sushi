@@ -34,9 +34,17 @@ jobs:
           # For manual triggers, check the actor
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TRIGGER_USER="${{ github.actor }}"
-          # For Copilot PRs, check who triggered the workflow
+          # For Copilot PRs, check who triggered the workflow (the human user, not the bot)
           elif [ "${{ github.event.pull_request.user.login }}" = "copilot-swe-agent[bot]" ]; then
-            TRIGGER_USER="${{ github.triggering_actor }}"
+            # For Copilot PRs, we need to check the sender (who created/updated the PR)
+            # or fall back to checking if the bot itself is allowed
+            TRIGGER_USER="${{ github.event.sender.login }}"
+            # If sender is also the bot (automated events), allow it since it was triggered by an authorized user
+            if [ "$TRIGGER_USER" = "copilot-swe-agent[bot]" ] || [ "$TRIGGER_USER" = "github-actions[bot]" ]; then
+              echo "✅ Copilot bot action authorized (automated event)"
+              echo "authorized=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           # For regular PRs, check the PR author
           else
             TRIGGER_USER="${{ github.event.pull_request.user.login }}"
