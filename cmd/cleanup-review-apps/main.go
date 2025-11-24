@@ -247,7 +247,7 @@ func printSummary(results []appStatus) {
 func writeGitHubSummary(summaryFile string, results []appStatus, live, scaledDown, skipped, errorCount int) {
 	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Printf("Warning: Could not write to GitHub summary: %v\n", err)
+		fmt.Printf("Warning: Could not write to GitHub summary file %s: %v\n", summaryFile, err)
 		return
 	}
 	defer f.Close()
@@ -283,7 +283,9 @@ func writeGitHubSummary(summaryFile string, results []appStatus, live, scaledDow
 			case "error":
 				statusEmoji = "❌"
 			}
-			f.WriteString(fmt.Sprintf("| %s %s | `%s` | %s |\n", statusEmoji, r.status, r.name, r.message))
+			// Escape markdown special characters in message to prevent table formatting issues
+			escapedMessage := escapeMarkdown(r.message)
+			f.WriteString(fmt.Sprintf("| %s %s | `%s` | %s |\n", statusEmoji, r.status, r.name, escapedMessage))
 		}
 		f.WriteString("\n")
 	}
@@ -294,4 +296,14 @@ func writeGitHubSummary(summaryFile string, results []appStatus, live, scaledDow
 	} else {
 		f.WriteString("✅ **Success:** All review apps processed successfully.\n")
 	}
+}
+
+// escapeMarkdown escapes special markdown characters to prevent table formatting issues
+func escapeMarkdown(s string) string {
+	// Replace pipe characters which would break markdown tables
+	s = strings.ReplaceAll(s, "|", "\\|")
+	// Replace newlines with spaces to keep content in single table cell
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	return s
 }
