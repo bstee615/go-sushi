@@ -150,208 +150,257 @@
   $: sets = myPlayer?.collection ? countSets(myPlayer.collection) : null;
 </script>
 
-<div class="min-h-screen p-4 sm:p-6 animate-fade-in">
-  <div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="japanese-header rounded-2xl p-4 sm:p-6 mb-6">
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span class="text-4xl">🏮</span>
-          <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-shadow">Sushi Go! Game</h1>
-            {#if gameState?.gameId}
-              <div class="text-sm opacity-90 mt-1">
-                Table: <span class="font-mono font-bold">{gameState.gameId}</span>
-                <button 
-                  on:click={copyGameId}
-                  class="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30 transition-all"
-                >
-                  📋 Copy
-                </button>
-              </div>
-            {/if}
-          </div>
-        </div>
-        <div class="flex gap-3">
-          {#if canStartGame}
-            <button 
-              on:click={startGame}
-              class="btn-primary animate-pulse-rotate"
-            >
-              <span class="text-xl mr-1">⭐</span>
-              Start Game!
-            </button>
+<!-- Sushi Restaurant Layout -->
+<div class="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
+  <!-- Wooden Bar at Top (like sushi counter) -->
+  <div class="bg-gradient-to-r from-amber-800 via-amber-900 to-amber-800 text-white shadow-2xl">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-4xl">🍣</span>
+        <div>
+          <h1 class="text-2xl font-bold text-shadow">Sushi Go! Restaurant</h1>
+          {#if gameState?.gameId}
+            <div class="text-sm opacity-90">
+              Table: <span class="font-mono font-semibold">{gameState.gameId}</span>
+              <button 
+                on:click={copyGameId}
+                class="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30 transition-all"
+              >
+                📋
+              </button>
+            </div>
           {/if}
-          <button 
-            on:click={onLogout}
-            class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
-          >
-            Logout
-          </button>
         </div>
       </div>
+      <div class="flex gap-3">
+        {#if canStartGame}
+          <button 
+            on:click={startGame}
+            class="btn-primary animate-pulse-rotate"
+          >
+            <span class="text-xl mr-1">⭐</span>
+            Start Game!
+          </button>
+        {/if}
+        <button 
+          on:click={onLogout}
+          class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all"
+        >
+          Logout
+        </button>
+      </div>
     </div>
+  </div>
 
-    <!-- Main Game Area -->
-    <div class="grid lg:grid-cols-3 gap-6">
-      <!-- Left: Hand and Collection (Takes 2 columns) -->
-      <div class="lg:col-span-2 space-y-6">
-        <!-- Your Hand -->
-        <div class="card-base p-6">
-          <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center">
-            <span class="text-3xl mr-2">🎴</span>
-            Your Hand
+  <div class="max-w-7xl mx-auto p-4">
+    <!-- Main Restaurant Layout -->
+    <div class="grid grid-cols-12 gap-4">
+      
+      <!-- Left Side: Players Sitting at Table -->
+      <div class="col-span-3 space-y-3">
+        <div class="bg-white rounded-xl shadow-lg p-4 border-4 border-amber-800">
+          <h2 class="text-xl font-bold text-amber-900 mb-3 flex items-center">
+            <span class="text-2xl mr-2">👥</span>
+            Diners
           </h2>
 
-          {#if gameState?.phase === 'waiting'}
-            <!-- Waiting State -->
-            <div class="text-center py-16">
-              <div class="text-7xl mb-4 animate-bounce">🍣</div>
-              <div class="text-2xl font-bold text-amber-900 mb-2">Ready to Play!</div>
-              <div class="text-gray-600">Click "Start Game" when all players are ready</div>
-            </div>
-          {:else}
-            <!-- Round Indicator and Actions -->
-            {#if (gameState?.currentRound || 0) > 0}
-              <div class="flex flex-wrap gap-3 mb-6">
-                <div class="px-4 py-2 bg-amber-50 rounded-lg border-2 border-amber-800/30">
-                  <div class="text-xs text-gray-600 font-semibold mb-1">ROUND</div>
-                  <div class="flex gap-2">
-                    {#each [1, 2, 3] as round}
-                      <span class="text-xl font-bold {round === gameState?.currentRound ? 'text-red-600' : round < (gameState?.currentRound || 0) ? 'text-green-500' : 'text-gray-400'}">
-                        {round}
-                      </span>
-                    {/each}
+          {#if gameState?.players}
+            <div class="space-y-2">
+              {#each gameState.players as player}
+                <div class="p-3 bg-gradient-to-r from-amber-50 to-white rounded-lg border-2 {player.id === gameState.myPlayerId ? 'border-red-600 shadow-md' : 'border-amber-200'} {player.hasSelected && gameState.phase === 'selecting' ? 'ring-2 ring-green-400' : ''}">
+                  <div class="flex items-start gap-2">
+                    {#if player.hasSelected && gameState.phase === 'selecting'}
+                      <span class="text-xl animate-bounce">✅</span>
+                    {:else}
+                      <span class="text-xl">🧑‍🍳</span>
+                    {/if}
+                    <div class="flex-1 min-w-0">
+                      <div class="font-bold text-sm text-amber-900 truncate">
+                        {player.name}
+                        {#if player.id === gameState.myPlayerId}
+                          <span class="text-xs text-red-600">(You)</span>
+                        {/if}
+                      </div>
+                      <div class="text-xs text-gray-600 flex justify-between mt-1">
+                        <span>Score: {player.score}</span>
+                        <span>Hand: {player.handSize}</span>
+                      </div>
+                      {#if player.collection && player.collection.length > 0}
+                        <div class="flex flex-wrap gap-1 mt-1">
+                          {#each player.collection.slice(0, 6) as card}
+                            <span class="text-sm">{getCardEmoji(card.type)}</span>
+                          {/each}
+                          {#if player.collection.length > 6}
+                            <span class="text-xs text-gray-500">+{player.collection.length - 6}</span>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                 </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Center: Conveyor Belt with Sushi Cards -->
+      <div class="col-span-9 space-y-4">
+        
+        <!-- Conveyor Belt Background -->
+        <div class="bg-gradient-to-b from-gray-700 to-gray-800 rounded-2xl shadow-2xl p-6 border-8 border-gray-900" style="min-height: 300px;">
+          <div class="bg-gray-600/30 rounded-xl p-4 backdrop-blur-sm">
+            
+            {#if gameState?.phase === 'waiting'}
+              <!-- Waiting State -->
+              <div class="text-center py-16">
+                <div class="text-7xl mb-4 animate-bounce">🍣</div>
+                <div class="text-3xl font-bold text-white mb-2 text-shadow">Ready to Play!</div>
+                <div class="text-xl text-gray-300">Click "Start Game" to begin</div>
+              </div>
+            {:else}
+              <!-- Round and Action Indicators -->
+              <div class="flex flex-wrap gap-3 mb-6">
+                <!-- Round Indicator -->
+                {#if (gameState?.currentRound || 0) > 0}
+                  <div class="px-4 py-2 bg-white rounded-lg border-2 border-amber-800 shadow-md">
+                    <div class="text-xs text-gray-600 font-semibold mb-1">ROUND</div>
+                    <div class="flex gap-2">
+                      {#each [1, 2, 3] as round}
+                        <span class="text-2xl font-bold {round === gameState?.currentRound ? 'text-red-600' : round < (gameState?.currentRound || 0) ? 'text-green-500' : 'text-gray-400'}">
+                          {round}
+                        </span>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
 
                 <!-- Chopsticks Button -->
                 {#if canUseChopsticks && gameState?.phase === 'selecting' && !myPlayer?.hasSelected}
                   <button
                     on:click={toggleChopsticks}
-                    class="px-4 py-2 rounded-lg border-2 font-semibold flex items-center transition-all {chopsticksMode ? 'bg-yellow-500 text-white border-yellow-600 animate-pulse-rotate' : 'bg-white text-yellow-800 border-yellow-400 hover:bg-yellow-50'}"
+                    class="px-4 py-2 rounded-lg border-2 font-semibold transition-all shadow-md {chopsticksMode ? 'bg-yellow-500 text-white border-yellow-600 animate-pulse-rotate' : 'bg-white text-yellow-800 border-yellow-400 hover:bg-yellow-50'}"
                   >
                     <span class="text-xl mr-2">🥢</span>
                     Use Chopsticks!
                     {#if chopsticksMode}
-                      <span class="ml-2 text-sm">(Select 2 cards)</span>
+                      <span class="ml-2 text-sm">(Pick 2)</span>
                     {/if}
                   </button>
                 {/if}
 
+                <!-- Status Message -->
                 {#if myPlayer?.hasSelected && gameState?.phase === 'selecting'}
-                  <div class="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg border-2 border-amber-300 font-semibold flex items-center animate-gentle-pulse">
+                  <div class="px-4 py-2 bg-amber-100 text-amber-900 rounded-lg border-2 border-amber-400 font-semibold animate-gentle-pulse shadow-md">
                     <span class="mr-2">⏳</span>
                     Waiting for others...
                   </div>
                 {:else if gameState?.phase === 'selecting'}
-                  <div class="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg border-2 border-blue-300 font-semibold flex items-center">
+                  <div class="px-4 py-2 bg-white text-blue-900 rounded-lg border-2 border-blue-400 font-semibold shadow-md">
                     <span class="mr-2">👆</span>
                     Click a card to play
                   </div>
                 {/if}
               </div>
-            {/if}
 
-            <!-- Hand Cards - Fan Layout -->
-            {#if myHand.length > 0}
-              <div class="relative min-h-[280px] flex items-end justify-center pb-4">
-                {#each myHand as card, index}
-                  {@const isSelected = selectedCardIndex === index || secondCardIndex === index}
-                  {@const rotation = (index - myHand.length / 2) * 4}
-                  {@const translateY = Math.abs(index - myHand.length / 2) * 10}
-                  
-                  <button
-                    on:click={() => selectCard(index)}
-                    disabled={myPlayer?.hasSelected && !isSelected}
-                    class="absolute transform transition-all duration-300 hover:scale-110 hover:-translate-y-8 disabled:opacity-50"
-                    style="
-                      left: {50 + (index - myHand.length / 2) * 12}%;
-                      transform: translateX(-50%) translateY({isSelected ? -40 : translateY}px) rotate({rotation}deg);
-                      z-index: {isSelected ? 100 : index};
-                    "
-                  >
-                    <div class="w-32 h-44 bg-gradient-to-br {getCardColor(card.type)} rounded-xl shadow-card border-4 border-white relative overflow-hidden">
-                      <!-- Card Header -->
-                      <div class="absolute top-0 left-0 right-0 bg-white/90 p-2 text-center">
-                        <div class="text-3xl mb-1">{getCardEmoji(card.type)}</div>
-                        <div class="text-xs font-bold text-gray-800 uppercase">{formatCardType(card.type)}</div>
-                      </div>
+              <!-- Horizontal Conveyor Belt with Cards -->
+              {#if myHand.length > 0}
+                <div class="relative overflow-x-auto">
+                  <div class="flex gap-4 pb-4" style="min-width: min-content;">
+                    {#each myHand as card, index}
+                      {@const isSelected = selectedCardIndex === index || secondCardIndex === index}
                       
-                      <!-- Card Center Content -->
-                      <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-5xl opacity-20">
-                        {getCardEmoji(card.type)}
-                      </div>
-                      
-                      <!-- Card Footer -->
-                      {#if card.variant || card.value !== undefined}
-                        <div class="absolute bottom-0 left-0 right-0 bg-white/90 p-2 text-center">
-                          <div class="text-xs font-bold text-gray-800">
-                            {card.variant || `${card.value}`}
+                      <button
+                        on:click={() => selectCard(index)}
+                        disabled={myPlayer?.hasSelected && !isSelected}
+                        class="flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:-translate-y-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                        class:scale-110={isSelected}
+                        class:-translate-y-4={isSelected}
+                      >
+                        <div class="w-40 h-56 bg-gradient-to-br {getCardColor(card.type)} rounded-xl shadow-lg border-4 border-white relative overflow-hidden">
+                          <!-- Card Header -->
+                          <div class="absolute top-0 left-0 right-0 bg-white/95 p-3 text-center">
+                            <div class="text-4xl mb-1">{getCardEmoji(card.type)}</div>
+                            <div class="text-xs font-bold text-gray-800 uppercase tracking-wide">{formatCardType(card.type)}</div>
                           </div>
-                        </div>
-                      {/if}
+                          
+                          <!-- Card Center -->
+                          <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-6xl opacity-20">
+                            {getCardEmoji(card.type)}
+                          </div>
+                          
+                          <!-- Card Footer -->
+                          {#if card.variant || card.value !== undefined}
+                            <div class="absolute bottom-0 left-0 right-0 bg-white/95 p-2 text-center">
+                              <div class="text-sm font-bold text-gray-800">
+                                {card.variant || card.value}
+                              </div>
+                            </div>
+                          {/if}
 
-                      <!-- Selection Indicator -->
-                      {#if isSelected}
-                        <div class="absolute inset-0 border-4 border-yellow-400 rounded-xl animate-pulse"></div>
-                        <div class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center font-bold text-sm">
-                          ✓
+                          <!-- Selection Glow -->
+                          {#if isSelected}
+                            <div class="absolute inset-0 border-4 border-yellow-400 rounded-xl animate-pulse shadow-xl"></div>
+                            <div class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 rounded-full w-8 h-8 flex items-center justify-center font-bold shadow-lg">
+                              ✓
+                            </div>
+                          {/if}
                         </div>
-                      {/if}
-                    </div>
-                  </button>
-                {/each}
-              </div>
-            {:else}
-              <div class="text-center py-8 text-gray-500">
-                <div class="text-4xl mb-2">🍽️</div>
-                <p>No cards in hand</p>
-              </div>
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {:else}
+                <div class="text-center py-12 text-white">
+                  <div class="text-5xl mb-3">🍽️</div>
+                  <p class="text-xl">No cards in hand</p>
+                </div>
+              {/if}
             {/if}
-          {/if}
+          </div>
         </div>
 
-        <!-- Collection -->
+        <!-- Your Collection Display (Below Conveyor Belt) -->
         {#if gameState?.phase !== 'waiting' && myPlayer?.collection}
-          <div class="card-base p-6">
-            <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center justify-between">
-              <span class="flex items-center">
+          <div class="bg-white rounded-xl shadow-lg p-6 border-4 border-amber-800">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold text-amber-900 flex items-center">
                 <span class="text-3xl mr-2">🍱</span>
                 Your Collection
-              </span>
+              </h2>
               <div class="text-4xl font-bold text-red-600">{myPlayer.score || 0}</div>
-            </h2>
+            </div>
 
+            <!-- Collection Cards -->
             <div class="flex flex-wrap gap-2 mb-4">
               {#if myPlayer.collection.length === 0}
                 <p class="text-gray-500 w-full text-center py-4">No cards collected yet</p>
               {:else}
-                {#each myPlayer.collection as card, idx}
-                  <div class="px-3 py-2 bg-gradient-to-br {getCardColor(card.type)} text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-1 relative">
-                    <span>{getCardEmoji(card.type)}</span>
+                {#each myPlayer.collection as card}
+                  <div class="px-3 py-2 bg-gradient-to-br {getCardColor(card.type)} text-white rounded-lg text-sm font-semibold shadow-sm">
+                    <span class="text-lg mr-1">{getCardEmoji(card.type)}</span>
                     <span>{formatCardType(card.type)}</span>
                     {#if card.variant}
-                      <span class="text-xs opacity-75">({card.variant})</span>
+                      <span class="text-xs opacity-75 ml-1">({card.variant})</span>
                     {/if}
                     {#if card.type === 'maki_roll'}
-                      <span class="text-xs opacity-75">[{card.value || 0}]</span>
+                      <span class="text-xs opacity-75 ml-1">[{card.value || 0}]</span>
                     {/if}
                   </div>
                 {/each}
               {/if}
             </div>
 
-            <!-- Set Indicators -->
+            <!-- Set Multipliers -->
             {#if sets}
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                <!-- Tempura Sets -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <!-- Tempura -->
                 {#if sets.tempuraSets > 0 || sets.tempuraRemainder > 0}
                   <div class="px-3 py-2 bg-orange-100 border-2 border-orange-300 rounded-lg text-center">
-                    <div class="text-lg">🍤</div>
+                    <div class="text-2xl">🍤</div>
                     <div class="text-xs font-bold text-orange-900">
                       {#if sets.tempuraSets > 0}
-                        <span class="text-lg animate-pulse-rotate">✨ {sets.tempuraSets}x2!</span>
+                        <span class="text-lg animate-pulse-rotate">✨{sets.tempuraSets}x2!</span>
                       {:else}
                         {sets.tempuraRemainder}/2
                       {/if}
@@ -359,13 +408,13 @@
                   </div>
                 {/if}
 
-                <!-- Sashimi Sets -->
+                <!-- Sashimi -->
                 {#if sets.sashimiSets > 0 || sets.sashimiRemainder > 0}
                   <div class="px-3 py-2 bg-pink-100 border-2 border-pink-300 rounded-lg text-center">
-                    <div class="text-lg">🐟</div>
+                    <div class="text-2xl">🐟</div>
                     <div class="text-xs font-bold text-pink-900">
                       {#if sets.sashimiSets > 0}
-                        <span class="text-lg animate-pulse-rotate">✨ {sets.sashimiSets}x3!</span>
+                        <span class="text-lg animate-pulse-rotate">✨{sets.sashimiSets}x3!</span>
                       {:else}
                         {sets.sashimiRemainder}/3
                       {/if}
@@ -373,21 +422,21 @@
                   </div>
                 {/if}
 
-                <!-- Wasabi Active -->
+                <!-- Wasabi -->
                 {#if sets.wasabiActive}
                   <div class="px-3 py-2 bg-green-100 border-2 border-green-300 rounded-lg text-center">
-                    <div class="text-lg">🟢</div>
+                    <div class="text-2xl">🟢</div>
                     <div class="text-xs font-bold text-green-900">
-                      <span class="text-lg animate-pulse-rotate">✨ 3x!</span>
-                      <div class="text-xs opacity-75">Wasabi Active</div>
+                      <span class="text-lg animate-pulse-rotate">✨3x!</span>
+                      <div class="text-xs opacity-75">Active</div>
                     </div>
                   </div>
                 {/if}
 
-                <!-- Chopsticks Available -->
+                <!-- Chopsticks -->
                 {#if canUseChopsticks}
                   <div class="px-3 py-2 bg-yellow-100 border-2 border-yellow-300 rounded-lg text-center">
-                    <div class="text-lg">🥢</div>
+                    <div class="text-2xl">🥢</div>
                     <div class="text-xs font-bold text-yellow-900">
                       {myPlayer.chopsticksCount} Available
                     </div>
@@ -396,7 +445,8 @@
               </div>
             {/if}
 
-            <div class="p-3 bg-amber-100 rounded-lg border-2 border-amber-300 text-center">
+            <!-- Pudding -->
+            <div class="mt-4 p-3 bg-amber-100 rounded-lg border-2 border-amber-300 text-center">
               <span class="text-2xl mr-2">🍮</span>
               <span class="font-bold text-amber-900">
                 Pudding: {myPlayer.puddingCards?.length || 0}
@@ -405,72 +455,6 @@
             </div>
           </div>
         {/if}
-      </div>
-
-      <!-- Right: Players List -->
-      <div class="space-y-6">
-        <div class="card-base p-6">
-          <h2 class="text-2xl font-bold text-amber-900 mb-4 flex items-center">
-            <span class="text-3xl mr-2">👥</span>
-            Players
-          </h2>
-
-          {#if gameState?.players}
-            <div class="space-y-3">
-              {#each gameState.players as player}
-                <div class="p-4 bg-gradient-to-r from-amber-50 to-white rounded-lg border-2 {player.id === gameState.myPlayerId ? 'border-red-600' : 'border-amber-800/20'} {player.hasSelected && gameState.phase === 'selecting' ? 'ring-2 ring-green-400 shadow-lg' : ''}">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      {#if player.hasSelected && gameState.phase === 'selecting'}
-                        <span class="text-2xl animate-bounce">✅</span>
-                      {:else}
-                        <span class="text-2xl">○</span>
-                      {/if}
-                      <div>
-                        <div class="font-bold text-amber-900 flex items-center gap-2">
-                          {player.name}
-                          {#if player.id === gameState.myPlayerId}
-                            <span class="text-xs text-red-600">(You)</span>
-                          {/if}
-                          {#if player.hasSelected && gameState.phase === 'selecting'}
-                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold animate-pulse">
-                              Card Selected!
-                            </span>
-                          {/if}
-                        </div>
-                        <div class="text-xs text-gray-600">
-                          Score: {player.score} | Hand: {player.handSize}
-                          {#if player.chopsticksCount && player.chopsticksCount > 0}
-                            <span class="ml-1">| 🥢 {player.chopsticksCount}</span>
-                          {/if}
-                        </div>
-                      </div>
-                    </div>
-                    {#if gameState.phase === 'waiting' && player.id !== gameState.myPlayerId}
-                      <button 
-                        on:click={() => kickPlayer(player.id)}
-                        class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
-                      >
-                        Kick
-                      </button>
-                    {/if}
-                  </div>
-
-                  {#if player.collection && player.collection.length > 0}
-                    <div class="flex flex-wrap gap-1 mt-2">
-                      {#each player.collection.slice(0, 8) as card}
-                        <span class="text-lg">{getCardEmoji(card.type)}</span>
-                      {/each}
-                      {#if player.collection.length > 8}
-                        <span class="text-xs text-gray-500">+{player.collection.length - 8}</span>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
       </div>
     </div>
   </div>
