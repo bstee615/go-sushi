@@ -148,194 +148,125 @@
     selectCard(index);
   }
 
+  let canvasRef: any;
+
   $: canStartGame = gameState?.phase === 'waiting' && (gameState?.players?.length || 0) >= 2;
   $: myPlayer = gameState?.players?.find(p => p.id === gameState?.myPlayerId);
   $: canUseChopsticks = (myPlayer?.chopsticksCount || 0) > 0;
   $: myHand = gameState?.myHand || [];
   $: selectedIndices = [selectedCardIndex, secondCardIndex].filter((i): i is number => i !== null);
   $: canSelectCards = gameState?.phase === 'selecting' && !myPlayer?.hasSelected;
+  $: allPlayers = gameState?.players || [];
 </script>
 
-<!-- Skeumorphic Conveyor Belt Sushi Restaurant -->
+<!-- Skeumorphic Conveyor Belt Sushi Restaurant - Full Canvas -->
 <div class="min-h-screen bg-gradient-to-b from-amber-900 via-amber-800 to-amber-900">
-  <!-- Minimal Top Bar -->
-  <div class="bg-black/30 text-white shadow-2xl">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-3xl">🍣</span>
-        <div class="text-sm">
-          {#if gameState?.gameId}
-            Table: <span class="font-mono font-semibold">{gameState.gameId}</span>
-            <button 
-              on:click={copyGameId}
-              class="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30"
-            >
-              📋
-            </button>
-          {/if}
-        </div>
-      </div>
-      <div class="flex gap-3 items-center text-sm">
-        {#if gameState?.currentRound}
-          <span class="px-3 py-1 bg-white/20 rounded">
-            Round {gameState.currentRound}/3
-          </span>
-        {/if}
-        {#if canStartGame}
+  <!-- Minimal Floating Control Bar -->
+  <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+    <div class="bg-black/60 backdrop-blur-lg text-white shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-4">
+      <span class="text-2xl">🍣</span>
+      {#if gameState?.gameId}
+        <div class="text-sm font-mono">
+          {gameState.gameId}
           <button 
-            on:click={startGame}
-            class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-semibold animate-pulse-rotate"
+            on:click={copyGameId}
+            class="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30"
           >
-            ⭐ Start Game
+            📋
           </button>
-        {/if}
-        {#if canUseChopsticks && canSelectCards}
-          <button
-            on:click={toggleChopsticks}
-            class="px-3 py-2 rounded-lg font-semibold {chopsticksMode ? 'bg-yellow-500 text-black' : 'bg-white/20'}"
-          >
-            🥢 {chopsticksMode ? 'Chopsticks ON' : 'Use Chopsticks'}
-          </button>
-        {/if}
+        </div>
+      {/if}
+      {#if gameState?.currentRound}
+        <span class="px-3 py-1 bg-white/20 rounded">
+          Round {gameState.currentRound}/3
+        </span>
+      {/if}
+      {#if canStartGame}
         <button 
-          on:click={onLogout}
-          class="px-3 py-2 bg-red-500/80 hover:bg-red-600 rounded-lg"
+          on:click={startGame}
+          class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-semibold animate-pulse-rotate"
         >
-          Logout
+          ⭐ Start Game!
         </button>
-      </div>
+      {/if}
+      {#if canUseChopsticks && canSelectCards}
+        <button
+          on:click={toggleChopsticks}
+          class="px-3 py-2 rounded-lg font-semibold animate-pulse-rotate {chopsticksMode ? 'bg-yellow-500 text-black' : 'bg-yellow-600/80 text-white'}"
+        >
+          🥢 {chopsticksMode ? 'Chopsticks Mode' : 'Use Chopsticks'}
+          {#if chopsticksMode}
+            <span class="text-xs block">(Pick 2 cards)</span>
+          {/if}
+        </button>
+      {/if}
+      <button 
+        on:click={onLogout}
+        class="px-3 py-2 bg-red-500/80 hover:bg-red-600 rounded-lg"
+      >
+        Exit
+      </button>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto p-4">
-    <!-- Main Conveyor Belt Canvas -->
-    <div class="my-6">
-      {#if gameState?.phase === 'waiting'}
-        <div class="text-center py-32 text-white">
-          <div class="text-9xl mb-6 animate-bounce">🍣</div>
-          <div class="text-4xl font-bold mb-4 drop-shadow-lg">Ready to Play!</div>
-          <div class="text-xl opacity-90">Click "Start Game" when all players are ready</div>
-        </div>
-      {:else if myHand.length > 0}
-        <ConveyorBeltCanvas 
-          cards={myHand}
-          onCardSelect={handleCardSelection}
-          selectedIndices={selectedIndices}
-          canSelect={canSelectCards}
-        />
-      {:else}
-        <div class="text-center py-32 text-white">
-          <div class="text-7xl mb-4">🍽️</div>
-          <div class="text-2xl opacity-80">Waiting for cards...</div>
-        </div>
-      {/if}
-    </div>
-
-    <!-- Bottom Info Panel -->
-    <div class="grid grid-cols-3 gap-4 mt-6">
-      <!-- Players -->
-      <div class="bg-black/40 backdrop-blur-sm rounded-xl p-4 text-white">
-        <h3 class="text-lg font-bold mb-3 flex items-center">
-          <span class="text-2xl mr-2">👥</span>
-          Players
-        </h3>
-        {#if gameState?.players}
-          <div class="space-y-2">
-            {#each gameState.players as player}
-              <div class="p-2 bg-white/10 rounded {player.id === gameState.myPlayerId ? 'ring-2 ring-yellow-400' : ''} {player.hasSelected ? 'ring-2 ring-green-400' : ''}">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    {#if player.hasSelected && gameState.phase === 'selecting'}
-                      <span class="text-lg animate-bounce">✅</span>
-                    {:else}
-                      <span class="text-lg">👤</span>
-                    {/if}
-                    <div class="text-sm">
-                      <div class="font-semibold">
-                        {player.name}
-                        {#if player.id === gameState.myPlayerId}
-                          <span class="text-xs text-yellow-300">(You)</span>
-                        {/if}
-                      </div>
-                      <div class="text-xs opacity-75">
-                        Score: {player.score} | Hand: {player.handSize}
-                      </div>
-                    </div>
-                  </div>
+  <!-- Main Conveyor Belt Canvas (Full Screen) -->
+  <div class="flex items-center justify-center min-h-screen p-4">
+    {#if gameState?.phase === 'waiting'}
+      <div class="text-center text-white">
+        <div class="text-9xl mb-6 animate-bounce">🍣</div>
+        <div class="text-5xl font-bold mb-4 drop-shadow-lg">Sushi Go! Restaurant</div>
+        <div class="text-2xl opacity-90 mb-8">Waiting for players...</div>
+        <div class="bg-black/40 backdrop-blur-sm rounded-xl p-6 inline-block">
+          {#if gameState.players}
+            <div class="space-y-2">
+              {#each gameState.players as player}
+                <div class="text-xl">
+                  {player.id === gameState.myPlayerId ? '👤' : '👥'} {player.name}
+                  {#if player.id === gameState.myPlayerId}
+                    <span class="text-yellow-300">(You)</span>
+                  {/if}
                 </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
+              {/each}
+            </div>
+          {/if}
+        </div>
       </div>
-
-      <!-- Your Collection -->
-      <div class="bg-black/40 backdrop-blur-sm rounded-xl p-4 text-white">
-        <h3 class="text-lg font-bold mb-3 flex items-center justify-between">
-          <span class="flex items-center">
-            <span class="text-2xl mr-2">🍱</span>
-            Collection
-          </span>
-          <span class="text-2xl text-yellow-400">{myPlayer?.score || 0}</span>
-        </h3>
-        {#if myPlayer?.collection && myPlayer.collection.length > 0}
-          <div class="flex flex-wrap gap-1">
-            {#each myPlayer.collection as card}
-              <span class="text-2xl">{getCardEmoji(card.type)}</span>
-            {/each}
-          </div>
-        {:else}
-          <div class="text-sm opacity-60 text-center py-4">No cards yet</div>
-        {/if}
+    {:else if myHand.length > 0}
+      <ConveyorBeltCanvas 
+        bind:this={canvasRef}
+        cards={myHand}
+        onCardSelect={handleCardSelection}
+        selectedIndices={selectedIndices}
+        canSelect={canSelectCards}
+        players={allPlayers}
+        myPlayerId={gameState?.myPlayerId || ''}
+      />
+    {:else if gameState?.phase === 'selecting'}
+      <div class="text-center text-white">
+        <div class="text-7xl mb-4">⏳</div>
+        <div class="text-3xl font-bold opacity-90">Waiting for cards...</div>
       </div>
-
-      <!-- Set Indicators -->
-      <div class="bg-black/40 backdrop-blur-sm rounded-xl p-4 text-white">
-        <h3 class="text-lg font-bold mb-3">🎯 Sets</h3>
-        {#if myPlayer?.collection}
-          {@const tempura = myPlayer.collection.filter(c => c.type === 'tempura').length}
-          {@const sashimi = myPlayer.collection.filter(c => c.type === 'sashimi').length}
-          {@const wasabi = myPlayer.collection.filter(c => c.type === 'wasabi').length}
-          <div class="space-y-2 text-sm">
-            {#if tempura > 0}
-              <div class="flex justify-between items-center">
-                <span>🍤 Tempura:</span>
-                <span class="font-bold">
-                  {#if tempura >= 2}
-                    <span class="text-green-400 animate-pulse">✨{Math.floor(tempura/2)}x2!</span>
-                  {:else}
-                    {tempura}/2
-                  {/if}
-                </span>
-              </div>
-            {/if}
-            {#if sashimi > 0}
-              <div class="flex justify-between items-center">
-                <span>🐟 Sashimi:</span>
-                <span class="font-bold">
-                  {#if sashimi >= 3}
-                    <span class="text-green-400 animate-pulse">✨{Math.floor(sashimi/3)}x3!</span>
-                  {:else}
-                    {sashimi}/3
-                  {/if}
-                </span>
-              </div>
-            {/if}
-            {#if wasabi > 0}
-              <div class="flex justify-between items-center">
-                <span>🟢 Wasabi:</span>
-                <span class="font-bold text-green-400 animate-pulse">✨3x Active!</span>
-              </div>
-            {/if}
-            {#if myPlayer.puddingCards && myPlayer.puddingCards.length > 0}
-              <div class="flex justify-between items-center">
-                <span>🍮 Pudding:</span>
-                <span class="font-bold">{myPlayer.puddingCards.length}</span>
-              </div>
-            {/if}
-          </div>
-        {/if}
+    {:else if gameState?.phase === 'complete'}
+      <div class="text-center text-white">
+        <div class="text-9xl mb-6">🏆</div>
+        <div class="text-5xl font-bold mb-8">Game Complete!</div>
+        <div class="bg-black/40 backdrop-blur-sm rounded-xl p-8 inline-block">
+          <h3 class="text-3xl mb-4">Final Scores</h3>
+          {#if gameState.players}
+            <div class="space-y-3">
+              {#each gameState.players.sort((a, b) => b.score - a.score) as player, index}
+                <div class="text-2xl flex items-center gap-4">
+                  <span class="text-3xl">
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎖️'}
+                  </span>
+                  <span class="font-bold">{player.name}</span>
+                  <span class="text-yellow-300">{player.score} points</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </div>
