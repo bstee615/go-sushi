@@ -26,29 +26,31 @@ jobs:
       working-directory: ./backend
       run: go mod download
 
-    - name: Run tests
+    - name: Run tests with coverage
       working-directory: ./backend
       # Note: Excluding ./playtest due to pre-existing build issues (linting errors)
       # Testing packages: scoring, server, engine, models, handlers
       # Note: Race detection disabled due to pre-existing data race in handlers package
-      run: go test ./scoring ./server ./engine ./models ./handlers -v
-    
-    - name: Run tests with coverage
-      working-directory: ./backend
       # Generate coverage for each package separately to avoid conflicts
       run: |
-        go test ./scoring -coverprofile=scoring.out -covermode=atomic
-        go test ./server -coverprofile=server.out -covermode=atomic
-        go test ./engine -coverprofile=engine.out -covermode=atomic
+        go test ./scoring -v -coverprofile=scoring.out -covermode=atomic
+        go test ./server -v -coverprofile=server.out -covermode=atomic
+        go test ./engine -v -coverprofile=engine.out -covermode=atomic
+        go test ./models -v
+        go test ./handlers -v
 
-    - name: Generate coverage report
+    - name: Combine coverage reports
       working-directory: ./backend
       run: |
         echo "mode: atomic" > coverage.out
-        tail -n +2 scoring.out >> coverage.out 2>/dev/null || true
-        tail -n +2 server.out >> coverage.out 2>/dev/null || true
-        tail -n +2 engine.out >> coverage.out 2>/dev/null || true
-        go tool cover -html=coverage.out -o coverage.html
+        # Check that coverage files exist before combining
+        test -f scoring.out && tail -n +2 scoring.out >> coverage.out
+        test -f server.out && tail -n +2 server.out >> coverage.out
+        test -f engine.out && tail -n +2 engine.out >> coverage.out
+    
+    - name: Generate coverage HTML report
+      working-directory: ./backend
+      run: go tool cover -html=coverage.out -o coverage.html
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4

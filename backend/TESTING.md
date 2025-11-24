@@ -104,7 +104,7 @@ The workflow:
 
 ### Known Issues
 
-- **Race Condition**: The handlers package has a pre-existing data race in `removeClient()` (line 789). This should be fixed by adding proper mutex locking around the `allConnections` map access.
+- **Data Race**: The handlers package has a pre-existing data race in the `removeClient()` function when accessing the `allConnections` map. This should be fixed by adding proper mutex locking around shared map access.
 - **Playtest Build Issues**: The playtest directory has linting errors and is excluded from CI.
 
 ## Test Principles
