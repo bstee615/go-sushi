@@ -87,11 +87,13 @@ go test ./scoring -run TestScoreMakiRolls_SingleWinner -v
 Tests are automatically run on every push and pull request via GitHub Actions (`.github/workflows/go-tests.yml`).
 
 **⚠️ PR Gating**: All tests must pass before a PR can be merged. The workflow runs tests for:
-- `./scoring` - Scoring logic tests
-- `./server` - Server integration tests
-- `./engine` - Game engine tests
-- `./models` - Data model tests
-- `./handlers` - Handler tests
+- `./scoring` - Scoring logic tests (13 tests)
+- `./server` - Server integration tests (10 tests)
+- `./engine` - Game engine tests (26 tests)
+- `./models` - Data model tests (no tests currently)
+- `./handlers` - Handler tests (no tests currently)
+
+Note: `./playtest` is excluded from CI due to pre-existing build issues.
 
 The workflow:
 - Runs all tests with race detection enabled
