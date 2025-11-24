@@ -41,7 +41,14 @@ jobs:
             echo "Checking app: $APP_NAME"
             
             # Get app releases to find the first deployment
-            RELEASES=$(flyctl releases --app "$APP_NAME" --json 2>/dev/null || echo "[]")
+            RELEASES=$(flyctl releases --app "$APP_NAME" --json 2>&1)
+            RELEASES_EXIT_CODE=$?
+            
+            if [ $RELEASES_EXIT_CODE -ne 0 ]; then
+              echo "⚠️  Error fetching releases for $APP_NAME: $RELEASES"
+              echo ""
+              continue
+            fi
             
             if [ "$RELEASES" = "[]" ] || [ -z "$RELEASES" ]; then
               echo "⚠️  No releases found for $APP_NAME, skipping..."

@@ -28,14 +28,16 @@ jobs:
         run: |
           # Create or deploy the review app
           # Check if app exists using status command (more efficient)
-          if ! flyctl status --app "${{ steps.app-name.outputs.app_name }}" &>/dev/null; then
+          echo "Checking if app exists: ${{ steps.app-name.outputs.app_name }}"
+          if ! flyctl status --app "${{ steps.app-name.outputs.app_name }}" 2>&1 | grep -q "Could not find App"; then
+            echo "Review app already exists: ${{ steps.app-name.outputs.app_name }}"
+          else
             echo "Creating new review app: ${{ steps.app-name.outputs.app_name }}"
             flyctl apps create "${{ steps.app-name.outputs.app_name }}"
-          else
-            echo "Review app already exists: ${{ steps.app-name.outputs.app_name }}"
           fi
           
           # Deploy the app with the review app name
+          echo "Deploying review app..."
           flyctl deploy --app "${{ steps.app-name.outputs.app_name }}" --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
