@@ -10,6 +10,7 @@ jobs:
     name: Deploy review app
     runs-on: ubuntu-latest
     # Only run for copilot PRs that are ready for review
+    # Note: Update the bot username here if it changes in the future
     if: github.event.pull_request.user.login == 'copilot-swe-agent[bot]' && github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
@@ -26,9 +27,12 @@ jobs:
       - name: Deploy review app
         run: |
           # Create or deploy the review app
-          if ! flyctl apps list | grep -q "${{ steps.app-name.outputs.app_name }}"; then
+          # Check if app exists using status command (more efficient)
+          if ! flyctl status --app "${{ steps.app-name.outputs.app_name }}" &>/dev/null; then
             echo "Creating new review app: ${{ steps.app-name.outputs.app_name }}"
             flyctl apps create "${{ steps.app-name.outputs.app_name }}"
+          else
+            echo "Review app already exists: ${{ steps.app-name.outputs.app_name }}"
           fi
           
           # Deploy the app with the review app name

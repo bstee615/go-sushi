@@ -58,8 +58,8 @@ jobs:
               continue
             fi
             
-            # Parse the creation timestamp (handle both GNU and BSD date)
-            RELEASE_TIME=$(date -d "$OLDEST_RELEASE" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${OLDEST_RELEASE%.*}" +%s 2>/dev/null || echo "0")
+            # Parse the creation timestamp using Python for better reliability
+            RELEASE_TIME=$(python3 -c "from datetime import datetime; import sys; dt = datetime.fromisoformat('$OLDEST_RELEASE'.replace('Z', '+00:00')); print(int(dt.timestamp()))" 2>/dev/null || echo "0")
             
             if [ "$RELEASE_TIME" -eq 0 ]; then
               echo "⚠️  Could not parse date for $APP_NAME, skipping..."
@@ -73,11 +73,12 @@ jobs:
               echo "📅 App $APP_NAME is $AGE_DAYS days old (created: $OLDEST_RELEASE)"
               echo "⚙️  Scaling app to 0 machines..."
               
-              # Scale the app to 0
-              if flyctl scale count 0 --app "$APP_NAME" --yes 2>/dev/null; then
+              # Scale the app to 0 and capture error output
+              if OUTPUT=$(flyctl scale count 0 --app "$APP_NAME" --yes 2>&1); then
                 echo "✅ Successfully scaled $APP_NAME to 0"
               else
                 echo "❌ Failed to scale $APP_NAME"
+                echo "Error output: $OUTPUT"
               fi
             else
               echo "✓ App $APP_NAME is $AGE_DAYS days old, skipping (less than 7 days)"
