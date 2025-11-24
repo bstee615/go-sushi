@@ -31,11 +31,24 @@ jobs:
       # Note: Excluding ./playtest due to pre-existing build issues (linting errors)
       # Testing packages: scoring, server, engine, models, handlers
       # Note: Race detection disabled due to pre-existing data race in handlers package
-      run: go test ./scoring ./server ./engine ./models ./handlers -v -coverprofile=coverage.out
+      run: go test ./scoring ./server ./engine ./models ./handlers -v
+    
+    - name: Run tests with coverage
+      working-directory: ./backend
+      # Generate coverage for each package separately to avoid conflicts
+      run: |
+        go test ./scoring -coverprofile=scoring.out -covermode=atomic
+        go test ./server -coverprofile=server.out -covermode=atomic
+        go test ./engine -coverprofile=engine.out -covermode=atomic
 
     - name: Generate coverage report
       working-directory: ./backend
-      run: go tool cover -html=coverage.out -o coverage.html
+      run: |
+        echo "mode: atomic" > coverage.out
+        tail -n +2 scoring.out >> coverage.out 2>/dev/null || true
+        tail -n +2 server.out >> coverage.out 2>/dev/null || true
+        tail -n +2 engine.out >> coverage.out 2>/dev/null || true
+        go tool cover -html=coverage.out -o coverage.html
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
