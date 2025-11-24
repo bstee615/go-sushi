@@ -28,7 +28,7 @@ jobs:
           # Create or deploy the review app
           if ! flyctl apps list | grep -q "${{ steps.app-name.outputs.app_name }}"; then
             echo "Creating new review app: ${{ steps.app-name.outputs.app_name }}"
-            flyctl apps create "${{ steps.app-name.outputs.app_name }}" --org personal
+            flyctl apps create "${{ steps.app-name.outputs.app_name }}"
           fi
           
           # Deploy the app with the review app name

@@ -40,6 +40,43 @@ iwr https://fly.io/install.ps1 -useb | iex
 
 Your app will be available at `https://your-app-name.fly.dev`
 
+## Review Apps
+
+Review apps are automatically deployed for Copilot pull requests when they are marked as ready for review. These are temporary preview environments for testing changes before merging.
+
+### Automatic Deployment
+
+- Review apps are created automatically via GitHub Actions workflow
+- Each PR gets a unique app name: `go-sushi-pr-{number}`
+- The PR comment will include the review app URL
+- Apps are deployed to Fly.io with the same configuration as production
+
+### Automatic Cleanup
+
+Review apps are automatically scaled to 0 machines after 1 week of inactivity:
+- A daily cleanup job runs at 2 AM UTC
+- Only review apps (matching `go-sushi-pr-*` pattern) are affected
+- Production app (`go-sushi`) is never scaled down by this job
+- Apps are scaled to 0 (not deleted) to preserve data while reducing costs
+
+### Manual Management
+
+To manually manage review apps:
+
+```bash
+# List all review apps
+fly apps list | grep "go-sushi-pr-"
+
+# Check status of a review app
+fly status --app go-sushi-pr-123
+
+# Scale a review app back up
+fly scale count 1 --app go-sushi-pr-123
+
+# Delete a review app (optional)
+fly apps destroy go-sushi-pr-123
+```
+
 ## Configuration
 
 The app is configured in `fly.toml`:

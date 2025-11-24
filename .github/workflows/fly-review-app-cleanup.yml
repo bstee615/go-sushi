@@ -25,57 +25,64 @@ jobs:
           CURRENT_TIME=$(date +%s)
           ONE_WEEK_AGO=$((CURRENT_TIME - 604800)) # 604800 seconds = 7 days
           
-          # List all apps and filter for review apps
-          APPS=$(flyctl apps list --json)
+          # List all apps and filter for review apps (not production)
+          REVIEW_APPS=$(flyctl apps list --json | jq -r '.[] | select(.Name | startswith("go-sushi-pr-")) | .Name')
           
-          echo "$APPS" | jq -r '.[] | select(.Name | startswith("go-sushi-pr-")) | .Name' | while read -r APP_NAME; do
-            if [ -z "$APP_NAME" ]; then
-              continue
-            fi
-            
+          if [ -z "$REVIEW_APPS" ]; then
+            echo "No review apps found."
+            exit 0
+          fi
+          
+          echo "Found review apps to check:"
+          echo "$REVIEW_APPS"
+          echo ""
+          
+          for APP_NAME in $REVIEW_APPS; do
             echo "Checking app: $APP_NAME"
-            
-            # Get app info to check creation date
-            APP_INFO=$(flyctl apps list --json | jq -r ".[] | select(.Name == \"$APP_NAME\")")
-            
-            # Get the app status
-            APP_STATUS=$(flyctl status --app "$APP_NAME" --json 2>/dev/null || echo "{}")
-            
-            # Extract creation date from app info
-            # Fly.io apps don't expose creation date directly via CLI, so we'll use a different approach:
-            # Check the app's last deployment or activity date
-            
-            # For now, we'll check if the app exists and scale based on machine status
-            # We'll use a tag/label approach or check deployment history
             
             # Get app releases to find the first deployment
             RELEASES=$(flyctl releases --app "$APP_NAME" --json 2>/dev/null || echo "[]")
             
-            if [ "$RELEASES" != "[]" ] && [ -n "$RELEASES" ]; then
-              # Get the oldest release (first deployment)
-              OLDEST_RELEASE=$(echo "$RELEASES" | jq -r '.[-1].CreatedAt' 2>/dev/null || echo "")
+            if [ "$RELEASES" = "[]" ] || [ -z "$RELEASES" ]; then
+              echo "⚠️  No releases found for $APP_NAME, skipping..."
+              echo ""
+              continue
+            fi
+            
+            # Get the oldest release (first deployment) - releases are in reverse chronological order
+            OLDEST_RELEASE=$(echo "$RELEASES" | jq -r '.[-1].CreatedAt' 2>/dev/null)
+            
+            if [ -z "$OLDEST_RELEASE" ] || [ "$OLDEST_RELEASE" = "null" ]; then
+              echo "⚠️  Could not determine creation date for $APP_NAME, skipping..."
+              echo ""
+              continue
+            fi
+            
+            # Parse the creation timestamp (handle both GNU and BSD date)
+            RELEASE_TIME=$(date -d "$OLDEST_RELEASE" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${OLDEST_RELEASE%.*}" +%s 2>/dev/null || echo "0")
+            
+            if [ "$RELEASE_TIME" -eq 0 ]; then
+              echo "⚠️  Could not parse date for $APP_NAME, skipping..."
+              echo ""
+              continue
+            fi
+            
+            AGE_DAYS=$(( (CURRENT_TIME - RELEASE_TIME) / 86400 ))
+            
+            if [ "$RELEASE_TIME" -lt "$ONE_WEEK_AGO" ]; then
+              echo "📅 App $APP_NAME is $AGE_DAYS days old (created: $OLDEST_RELEASE)"
+              echo "⚙️  Scaling app to 0 machines..."
               
-              if [ -n "$OLDEST_RELEASE" ] && [ "$OLDEST_RELEASE" != "null" ]; then
-                # Parse the creation timestamp
-                RELEASE_TIME=$(date -d "$OLDEST_RELEASE" +%s 2>/dev/null || echo "0")
-                
-                if [ "$RELEASE_TIME" -gt 0 ] && [ "$RELEASE_TIME" -lt "$ONE_WEEK_AGO" ]; then
-                  echo "App $APP_NAME is older than 1 week (created: $OLDEST_RELEASE)"
-                  echo "Scaling app to 0 machines..."
-                  
-                  # Scale the app to 0
-                  flyctl scale count 0 --app "$APP_NAME" --yes || echo "Failed to scale $APP_NAME"
-                  
-                  echo "✅ Scaled $APP_NAME to 0"
-                else
-                  echo "App $APP_NAME is less than 1 week old, skipping..."
-                fi
+              # Scale the app to 0
+              if flyctl scale count 0 --app "$APP_NAME" --yes 2>/dev/null; then
+                echo "✅ Successfully scaled $APP_NAME to 0"
               else
-                echo "Could not determine creation date for $APP_NAME, skipping..."
+                echo "❌ Failed to scale $APP_NAME"
               fi
             else
-              echo "No releases found for $APP_NAME, skipping..."
+              echo "✓ App $APP_NAME is $AGE_DAYS days old, skipping (less than 7 days)"
             fi
+            echo ""
           done
           
           echo "Cleanup complete!"
