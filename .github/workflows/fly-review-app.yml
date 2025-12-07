@@ -72,7 +72,9 @@ jobs:
     name: Deploy review app
     runs-on: ubuntu-latest
     needs: [check-authorization, test]
-    if: needs.check-authorization.outputs.authorized == 'true'
+    if: |
+      needs.check-authorization.outputs.authorized == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
     outputs:
       url: ${{ steps.deploy.outputs.url }}
     # Only run one deployment at a time per PR
